@@ -4,7 +4,7 @@ pub struct GameStatePlugin;
 
 impl Plugin for GameStatePlugin {
     fn build(&self, app: &mut App) {
-        app.add_state::<GameState>()
+        app.init_state::<GameState>()
            .add_systems(Startup, setup_game)
            .add_systems(Update, check_game_over_condition);
     }
@@ -21,7 +21,7 @@ pub enum GameState {
 
 #[derive(Resource)]
 pub struct PlayerResource {
-    pub gold: u32,
+    pub money: u32,
     pub lives: u32,
     pub score: u32,
 }
