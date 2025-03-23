@@ -6,6 +6,7 @@ mod projectile;
 mod ui;
 mod game_state;
 mod utils;
+mod map;
 
 use bevy::prelude::*;
 
