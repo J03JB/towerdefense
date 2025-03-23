@@ -11,6 +11,22 @@ impl Plugin for UiPlugin {
 }
 
 fn setup_ui() {
+    fn setup_ui(mut commands: Commands, asset_server: Res<AssetServer>) {
+    // UI container anchored to the top-right
+    commands.spawn(Node {
+            position_type: PositionType::Absolute,
+            right: Val::Px(10.0),
+            top: Val::Px(10.0),
+            width: Val::Px(200.0),
+            height: Val::Px(600.0),
+            ..default()
+    },
+        )
+    .with_children(|parent| {
+        // Add UI elements as children
+        // ...
+    });
+}
     // Set up game UI elements like health, resources, tower selection
 }
 

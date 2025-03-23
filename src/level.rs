@@ -28,8 +28,9 @@ pub struct Wave {
 
 fn setup_level(mut commands: Commands, asset_server: Res<AssetServer>) {
     // Define map dimensions and path
+    // let grid_size = Vec2::new(64.0, 60.0);
     let map = Map {
-        grid_size: Vec2::new(32.0, 32.0),
+        grid_size: Vec2::new(64.0, 60.0),
         dimensions: UVec2::new(20, 15),
         path_tiles: vec![UVec2::new(0, 5), UVec2::new(1, 5) /* ... path tiles */],
         buildable_tiles: vec![/* ... */],
@@ -131,4 +132,11 @@ fn place_tower(
         //     }
         // }
     }
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct LevelData {
+    pub path: Vec<Vec2>,
+    pub waves: Vec<WaveData>,
+    // other level data
 }
