@@ -10,9 +10,7 @@ impl Plugin for UiPlugin {
     }
 }
 
-fn setup_ui() {
-    fn setup_ui(mut commands: Commands, asset_server: Res<AssetServer>) {
-    // UI container anchored to the top-right
+fn setup_ui(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.spawn(Node {
             position_type: PositionType::Absolute,
             right: Val::Px(10.0),
@@ -28,7 +26,6 @@ fn setup_ui() {
     });
 }
     // Set up game UI elements like health, resources, tower selection
-}
 
 fn update_ui() {
     // Update UI based on game state

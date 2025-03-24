@@ -7,14 +7,16 @@ pub struct Map {
     pub buildable_tiles: Vec<UVec2>, // Tiles where towers can be placed
     pub start: UVec2,            // Enemy spawn point
     pub end: UVec2,              // Enemy goal
+    pub offset: Vec2,
 }
 
 impl Map {
     // Convert grid coordinates to world position
     pub fn grid_to_world(&self, grid_pos: UVec2) -> Vec2 {
         Vec2::new(
-            grid_pos.x as f32 * self.grid_size.x + self.grid_size.x * 0.5,
-            grid_pos.y as f32 * self.grid_size.y + self.grid_size.y * 0.5,
+            grid_pos.x as f32 * self.grid_size.x + self.grid_size.x * 0.5 - self.offset.x,
+            (self.dimensions.y - 1 - grid_pos.y) as f32 * self.grid_size.y + self.grid_size.y * 0.5 - self.offset.y,
+            // grid_pos.y as f32 * self.grid_size.y + self.grid_size.y * 0.5 - self.offset.y,
         )
     }
     

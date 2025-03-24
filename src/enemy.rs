@@ -26,8 +26,17 @@ pub enum EnemyType {
     Boss,
 }
 
-fn setup_enemies() {
+fn setup_enemies(mut commands: Commands, asset_server: Res<AssetServer>) {
     // Initialize enemy-related resources
+    let enemy_texture = asset_server.load("enemy.png");
+    commands.spawn((Sprite {
+        image: enemy_texture.clone(),
+        ..default()
+    },
+    
+        Transform::from_xyz( 29.0, 10.0, 0.0),
+    ));
+
 }
 
 fn move_enemies() {
