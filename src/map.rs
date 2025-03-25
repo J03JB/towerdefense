@@ -1,13 +1,6 @@
-
-// In src/map.rs
 use bevy::prelude::{Component, UVec2, Resource, Vec2, Vec3};
 
-// Add these constants at the top
-pub const WINDOW_WIDTH: f32 = 1280.0;
-pub const WINDOW_HEIGHT: f32 = 720.0;
-pub const GRID_WIDTH: usize = 26; 
-pub const GRID_HEIGHT: usize = 15;
-pub const CELL_SIZE: f32 = 48.0;
+use crate::config::{CELL_SIZE, GRID_HEIGHT, GRID_WIDTH, WINDOW_HEIGHT, WINDOW_WIDTH};
 
 #[derive(Component)]
 pub struct GridCell {

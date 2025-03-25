@@ -9,10 +9,12 @@ mod tower;
 mod ui;
 mod utils;
 mod grid;
+mod config;
 
 use bevy::prelude::*;
 
-use crate::level::{WINDOW_HEIGHT, WINDOW_WIDTH};
+use crate::config::WINDOW_HEIGHT;
+use crate::config::WINDOW_WIDTH;
 
 fn main() {
     App::new()
@@ -33,7 +35,6 @@ fn main() {
         .add_plugins(tower::TowerPlugin)
         .add_plugins(enemy::EnemyPlugin)
         .add_plugins(projectile::ProjectilePlugin)
-
         // .add_plugins(grid::GridPlugin)
         // .add_plugins(ui::UiPlugin)
         .add_plugins(overlay::OverlayPlugin)

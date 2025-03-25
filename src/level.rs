@@ -2,17 +2,13 @@ use crate::enemy::EnemyType;
 use serde::{Deserialize, Serialize};
 // use crate::map::Map;
 use crate::tower::{Tower, TowerType};
-// use crate::map::*;
+use crate::config::{GRID_WIDTH, CELL_SIZE, GRID_HEIGHT, WINDOW_HEIGHT, WINDOW_WIDTH};
+use crate::map::{Map, GridCell};
 
 use bevy::prelude::*;
 
 pub struct LevelPlugin;
 
-pub const WINDOW_WIDTH: f32 = 1280.0;
-pub const WINDOW_HEIGHT: f32 = 720.0;
-pub const GRID_WIDTH: usize = 27; 
-pub const GRID_HEIGHT: usize = 15;
-pub const CELL_SIZE: f32 = 48.0;
 impl Plugin for LevelPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Startup, setup_level);
@@ -35,35 +31,55 @@ pub struct Wave {
     pub wave_delay: f32,
 }
 
-#[derive(Component)]
-pub struct GridCell {
-    pub x: usize,
-    pub y: usize,
-}
-
 fn setup_level(mut commands: Commands, asset_server: Res<AssetServer>) {
-    let grid_start_x = -WINDOW_WIDTH / 2.0 + CELL_SIZE / 2.0;
-    let grid_start_y = WINDOW_HEIGHT / 2.0 - CELL_SIZE / 2.0;
+    let mut map = Map::new();
+    
+    for x in 0..GRID_WIDTH {
+        let path_pos = UVec2::new(x as u32, GRID_HEIGHT as u32 / 2);
+        map.path_tiles.push(path_pos);
+    }
+    
+    for y in 0..GRID_HEIGHT {
+        for x in 0..GRID_WIDTH {
+            let pos = UVec2::new(x as u32, y as u32);
+            if !map.path_tiles.contains(&pos) {
+                map.buildable_tiles.push(pos);
+            }
+        }
+    }
 
     for y in 0..GRID_HEIGHT {
         for x in 0..GRID_WIDTH {
-            let position = Vec2::new(
-                grid_start_x + x as f32 * CELL_SIZE,
-                grid_start_y - y as f32 * CELL_SIZE,
-            );
-
-            let texture_handle = asset_server.load("grass_test.png");
+            let pos = UVec2::new(x as u32, y as u32);
+            let world_pos = map.grid_to_world(pos);
+            
+            // Determine tile type
+            let (texture_handle, zvalue) = if map.path_tiles.contains(&pos) {
+                (asset_server.load("path.png"), 1.0)
+            } else if map.buildable_tiles.contains(&pos) {
+                (asset_server.load("grass.png"), -1.0)
+            } else {
+                (asset_server.load("blocked.png"), 1.0)
+            };
+            
             commands.spawn((
                 Sprite {
                     image: texture_handle,
+                    custom_size: Some(Vec2::new(CELL_SIZE, CELL_SIZE)),
                     ..default()
                 },
-                    Transform::from_translation(Vec3::new(position.x, position.y, 0.0)),
+                Transform::from_translation(Vec3::new(world_pos.x, world_pos.y, zvalue)),
                 GridCell { x, y },
             ));
         }
     }
+    info!("Window size: {}x{}", WINDOW_WIDTH, WINDOW_HEIGHT);
+    info!("Grid dimensions: {}x{} cells", GRID_WIDTH, GRID_HEIGHT);
+    info!("Total grid size: {}x{} pixels", GRID_WIDTH as f32 * CELL_SIZE, GRID_HEIGHT as f32 * CELL_SIZE);
+
+    commands.insert_resource(map);
 }
+
 fn check_wave_progress() {
     // Check if current wave is complete and spawn next wave
 }

@@ -1,6 +1,7 @@
+use crate::config::{WINDOW_HEIGHT, WINDOW_WIDTH};
+use crate::overlay::MainCamera;
 use bevy::prelude::*;
 use bevy::render::camera::ScalingMode;
-use crate::overlay::MainCamera;
 
 pub struct RenderPlugin;
 
@@ -12,15 +13,6 @@ impl Plugin for RenderPlugin {
 }
 
 fn setup_camera(mut commands: Commands) {
-    // commands.spawn(Camera2d);
-    let projection = Projection::Orthographic(OrthographicProjection {
-        scaling_mode: ScalingMode::FixedVertical {
-            viewport_height: 1600.0,
-        },
-        // scale: 0.01,
-        ..OrthographicProjection::default_2d()
-    });
-
     commands.spawn((Camera2d, MainCamera));
 }
 
