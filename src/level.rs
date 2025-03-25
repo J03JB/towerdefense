@@ -53,7 +53,6 @@ fn setup_level(mut commands: Commands, asset_server: Res<AssetServer>) {
             );
 
             let texture_handle = asset_server.load("grass_test.png");
-            // Spawn the grid cell
             commands.spawn((
                 Sprite {
                     image: texture_handle,
@@ -76,8 +75,6 @@ fn cast_cursor_ray(
   let window = windows.single();
   let (camera, position) = cameras.single();
 
-  // check if the cursor is inside the window and get its position
-  // then, ask bevy to convert into world coordinates, and truncate to discard Z
   if let Some(world_position) = window
     .cursor_position()
     .map(|cursor| camera.viewport_to_world(position, cursor))
