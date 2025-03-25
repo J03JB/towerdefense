@@ -19,3 +19,7 @@ fn setup_camera(mut commands: Commands) {
 fn update_sprites() {
     // Update sprite positions and animations
 }
+
+pub fn render_background() {
+
+}
