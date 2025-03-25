@@ -1,15 +1,23 @@
 use crate::enemy::EnemyType;
 use serde::{Deserialize, Serialize};
-use crate::map::Map;
+// use crate::map::Map;
 use crate::tower::{Tower, TowerType};
+// use crate::map::*;
+
 use bevy::prelude::*;
 
 pub struct LevelPlugin;
 
+pub const WINDOW_WIDTH: f32 = 1280.0;
+pub const WINDOW_HEIGHT: f32 = 720.0;
+pub const GRID_WIDTH: usize = 27; 
+pub const GRID_HEIGHT: usize = 15;
+pub const CELL_SIZE: f32 = 48.0;
 impl Plugin for LevelPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, setup_level)
-            .add_systems(Update, check_wave_progress);
+        app.add_systems(Startup, setup_level);
+            // .add_systems(Update, cast_cursor_ray);
+            // .add_systems(Update, check_wave_progress);
     }
 }
 
@@ -27,155 +35,56 @@ pub struct Wave {
     pub wave_delay: f32,
 }
 
+#[derive(Component)]
+pub struct GridCell {
+    pub x: usize,
+    pub y: usize,
+}
+
 fn setup_level(mut commands: Commands, asset_server: Res<AssetServer>) {
-    let level_json = std::fs::read_to_string("assets/level_01.tmj")
-        .expect("Failed to read level file");
-    
-    let level_data: TiledLevel = serde_json::from_str(&level_json)
-        .expect("Failed to parse level JSON");
+    let grid_start_x = -WINDOW_WIDTH / 2.0 + CELL_SIZE / 2.0;
+    let grid_start_y = WINDOW_HEIGHT / 2.0 - CELL_SIZE / 2.0;
 
-    let path_tiles = level_data.parse_path();
-
-  // Use info! or debug! instead of println
-    info!("Attempting to load level");
-    
-    // match std::fs::read_to_string("assets/level_01.tmj") {
-    //     Ok(level_json) => {
-    //         match serde_json::from_str::<TiledLevel>(&level_json) {
-    //             Ok(level_data) => {
-    //                 info!("Map dimensions: {}x{}", level_data.width, level_data.height);
-    //                 info!0("Tile size: {}x{}", level_data.tilewidth, level_data.tileheight);
-    //                 info!("First layer data length: {}", level_data.layers[0].data.len());
-    //                 info!("path: {:?}", path_tiles);
-    //
-    //                 // Rest of your existing code
-    //             },
-    //             Err(e) => error!("Failed to parse level JSON: {}", e)
-    //         }
-    //     },
-    //     Err(e) => error!("Failed to read level file: {}", e)
-    // }
-  // Hardcoded grid parameters based on your Tiled map
-    let tile_width = 40.0; // from your Tiled map
-    let tile_height = 23.0;
-    
-    let mut map = Map {
-        grid_size: Vec2::new(tile_width, tile_height),
-        dimensions: UVec2::new(level_data.width, level_data.height),
-        path_tiles,
-        buildable_tiles: vec![/* ... */],
-        start: UVec2::new(0, 5),
-        end: UVec2::new(19, 5),
-        offset: Vec2::ZERO,
-    };
-
-    info!("level width: {}", level_data.width);
-    info!("level height: {}", level_data.height);
-    // Load path tile texture
-    // let path_texture = asset_server.load("path.png");
-
-    let offset = Vec2::new(
-        (map.dimensions.x as f32 * map.grid_size.x)  / 2.0,
-        (map.dimensions.y as f32 * map.grid_size.y)  / 2.0,
+    for y in 0..GRID_HEIGHT {
+        for x in 0..GRID_WIDTH {
+            let position = Vec2::new(
+                grid_start_x + x as f32 * CELL_SIZE,
+                grid_start_y - y as f32 * CELL_SIZE,
             );
-    map.offset = offset;
 
-    // Spawn path tiles with manual positioning
-    // for tile_pos in &map.path_tiles {
-    //     let world_x = tile_pos.x as f32 * tile_width;
-    //     let world_y = tile_pos.y as f32 * tile_height;
-    //
-    //     commands.spawn((Sprite {
-    //         image: path_texture.clone(),
-    //         ..default()
-    //     },
-    //
-    //         Transform::from_xyz(
-    //             world_x + tile_width / 2.0, 
-    //             world_y + tile_height / 2.0, 
-    //             0.0
-    //         ),
-    //     ));
-    // }
-
-    // let map = Map {
-    //     grid_size: Vec2::new(
-    //     level_data.tilewidth as f32,
-    //     level_data.tileheight as f32
-    //     ),
-    //     dimensions: UVec2::new(level_data.width, level_data.height),
-    //     path_tiles,
-    //     // path_tiles: vec![UVec2::new(0, 5), UVec2::new(1, 5) /* ... path tiles */],
-    //     buildable_tiles: vec![/* ... */],
-    //     start: UVec2::new(0, 5),
-    //     end: UVec2::new(19, 5),
-    // };
-
-    // Spawn the background grass texture tiled across the map
-    for y in 0..map.dimensions.y {
-        for x in 0..map.dimensions.x {
-            let world_pos = map.grid_to_world(UVec2::new(x, y));
-
-            // Spawn grass background tile
+            let texture_handle = asset_server.load("grass_test.png");
+            // Spawn the grid cell
             commands.spawn((
                 Sprite {
-                    image: asset_server.load("grass_background.png"),
+                    image: texture_handle,
                     ..default()
                 },
-                Transform::from_xyz(0.0, 0.0,  -1.0)
-                 .with_scale(Vec3::splat(2.0)),
+                    Transform::from_translation(Vec3::new(position.x, position.y, 0.0)),
+                GridCell { x, y },
             ));
         }
     }
-    // Generate buildable tiles by excluding path tiles
-    // ...
-
-    let path_texture = asset_server.load("path.png");
-    for tile_pos in &map.path_tiles {
-        let world_pos = map.grid_to_world(*tile_pos);
-
-        commands.spawn((Sprite {
-            image: path_texture.clone(),
-            ..default()
-        },
-            Transform::from_xyz(world_pos.x, world_pos.y, 0.0),
-        ));
-
-    }    // Spawn map tiles visually
-    for y in 0..map.dimensions.y {
-        for x in 0..map.dimensions.x {
-            let pos = UVec2::new(x, y);
-            let world_pos = map.grid_to_world(pos);
-
-            let tile_type = if map.path_tiles.contains(&pos) {
-                "path_tile"
-            } else if map.buildable_tiles.contains(&pos) {
-                "buildable_tile"
-            } else {
-                "blocked_tile"
-            };
-
-            // commands.spawn(Sprite {
-            //     image: asset_server.load("path.png"),
-            //     ..default()
-            // });
-    //
-    //
-    //         // Spawn the appropriate tile sprite
-    //         // commands.spawn((
-    //         //     Sprite {
-    //         //     image: asset_server.load(format!("{}.png", tile_type)),
-    //         //     ..default()
-    //         // },
-    //         //     Transform::from_translation(world_pos.extend(0.0)),
-    //         // ));
-        }
-    }
-
-    commands.insert_resource(map);
 }
 fn check_wave_progress() {
     // Check if current wave is complete and spawn next wave
+}
+
+fn cast_cursor_ray(
+  windows: Query<&Window>,
+  cameras: Query<(&Camera, &GlobalTransform)>,
+) {
+  let window = windows.single();
+  let (camera, position) = cameras.single();
+
+  // check if the cursor is inside the window and get its position
+  // then, ask bevy to convert into world coordinates, and truncate to discard Z
+  if let Some(world_position) = window
+    .cursor_position()
+    .map(|cursor| camera.viewport_to_world(position, cursor))
+    .map(|ray| ray.unwrap().origin.truncate())
+  {
+    info!("World coords: {}/{}", world_position.x, world_position.y);
+  }
 }
 
 fn place_tower(
@@ -183,7 +92,7 @@ fn place_tower(
     mouse_input: Res<ButtonInput<MouseButton>>,
     windows: Query<&Window>,
     camera_q: Query<(&Camera, &GlobalTransform)>,
-    map: Res<Map>,
+    // map: Res<Map>,
     asset_server: Res<AssetServer>,
 ) {
     if mouse_input.just_pressed(MouseButton::Left) {
@@ -209,7 +118,7 @@ fn place_tower(
         //             ..default()
         //         },
         //
-        //             Transform::from_translation(world_pos.extend(10.0)),
+        //             Transform::from_translation(world_pos.extend(11.0)),
         //             Tower {
         //                 tower_type: TowerType::Basic,
         //                 range: 150.0,

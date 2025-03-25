@@ -1,4 +1,20 @@
-use bevy::prelude::{UVec2, Resource, Vec2};
+
+// In src/map.rs
+use bevy::prelude::{Component, UVec2, Resource, Vec2, Vec3};
+
+// Add these constants at the top
+pub const WINDOW_WIDTH: f32 = 1280.0;
+pub const WINDOW_HEIGHT: f32 = 720.0;
+pub const GRID_WIDTH: usize = 26; 
+pub const GRID_HEIGHT: usize = 15;
+pub const CELL_SIZE: f32 = 48.0;
+
+#[derive(Component)]
+pub struct GridCell {
+    pub x: usize,
+    pub y: usize,
+}
+
 #[derive(Resource)]
 pub struct Map {
     pub grid_size: Vec2,         // Size of each cell
@@ -7,33 +23,47 @@ pub struct Map {
     pub buildable_tiles: Vec<UVec2>, // Tiles where towers can be placed
     pub start: UVec2,            // Enemy spawn point
     pub end: UVec2,              // Enemy goal
-    pub offset: Vec2,
 }
 
 impl Map {
-    // Convert grid coordinates to world position
+    pub fn new() -> Self {
+        Map {
+            grid_size: Vec2::new(CELL_SIZE, CELL_SIZE),
+            dimensions: UVec2::new(GRID_WIDTH as u32, GRID_HEIGHT as u32),
+            path_tiles: Vec::new(),  // Will be filled based on level data
+            buildable_tiles: Vec::new(), // Will be filled later
+            start: UVec2::new(0, GRID_HEIGHT as u32 / 2),
+            end: UVec2::new(GRID_WIDTH as u32 - 1, GRID_HEIGHT as u32 / 2),
+        }
+    }
+
+    // Convert grid coordinates to world position considering centered grid
     pub fn grid_to_world(&self, grid_pos: UVec2) -> Vec2 {
+        let grid_start_x = -WINDOW_WIDTH / 2.0 + CELL_SIZE / 2.0;
+        let grid_start_y = WINDOW_HEIGHT / 2.0 - CELL_SIZE / 2.0;
+        
         Vec2::new(
-            grid_pos.x as f32 * self.grid_size.x + self.grid_size.x * 0.5 - self.offset.x,
-            (self.dimensions.y - 1 - grid_pos.y) as f32 * self.grid_size.y + self.grid_size.y * 0.5 - self.offset.y,
-            // grid_pos.y as f32 * self.grid_size.y + self.grid_size.y * 0.5 - self.offset.y,
+            grid_start_x + grid_pos.x as f32 * CELL_SIZE,
+            grid_start_y - grid_pos.y as f32 * CELL_SIZE,
         )
     }
     
     // Convert world position to grid coordinates
     pub fn world_to_grid(&self, world_pos: Vec2) -> UVec2 {
-        UVec2::new(
-            (world_pos.x / self.grid_size.x) as u32,
-            (world_pos.y / self.grid_size.y) as u32,
-        )
+        let grid_start_x = -WINDOW_WIDTH / 2.0 + CELL_SIZE / 2.0;
+        let grid_start_y = WINDOW_HEIGHT / 2.0 - CELL_SIZE / 2.0;
+        
+        let x = ((world_pos.x - grid_start_x) / CELL_SIZE).floor() as u32;
+        let y = ((grid_start_y - world_pos.y) / CELL_SIZE).floor() as u32;
+        
+        UVec2::new(x, y)
     }
     
-    // Check if a tile is buildable
+    // The rest of your Map implementation remains unchanged
     pub fn is_buildable(&self, grid_pos: UVec2) -> bool {
         self.buildable_tiles.contains(&grid_pos)
     }
     
-    // Get adjacent tiles (useful for pathfinding)
     pub fn get_adjacent_tiles(&self, pos: UVec2) -> Vec<UVec2> {
         let mut adjacent = Vec::new();
         // Add adjacent tiles checking bounds
@@ -41,7 +71,6 @@ impl Map {
         adjacent
     }
     
-    // Get path as world coordinates
     pub fn get_path_positions(&self) -> Vec<Vec2> {
         self.path_tiles.iter().map(|&pos| self.grid_to_world(pos)).collect()
     }

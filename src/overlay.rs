@@ -6,8 +6,8 @@ pub struct OverlayPlugin;
 impl Plugin for OverlayPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<MyWorldCoords>();
-        app.add_systems(Startup, setup)
-            .add_systems(Update, my_cursor_system);
+        // app.add_systems(Startup, setup)
+            app.add_systems(Update, my_cursor_system);
 
     }
 }
@@ -22,15 +22,15 @@ pub struct MyWorldCoords(Vec2);
 pub struct MainCamera;
 
 
-pub fn setup(mut commands: Commands) {
+// pub fn setup(mut commands: Commands) {
     // Make sure to add the marker component when you set up your camera
     // commands.spawn(Camera2d {
     //     MainCameram
     //     ..default()
     //
     // });
-     commands.spawn((Camera2dBundle::default(), MainCamera));
-}
+     // commands.spawn((Camera2d, OverLayCamera));
+// }
 
 pub fn my_cursor_system(
     mut mycoords: ResMut<MyWorldCoords>,
