@@ -384,21 +384,23 @@ fn render_editor_path(editor_data: Res<EditorData>, mut gizmos: Gizmos, map: Opt
         Vec2::new(48.0, 48.0)
     };
 
-    // info!("grid size: {}", grid_size);
+    let grid_start_x = -crate::config::WINDOW_WIDTH / 2.0 + grid_size.x / 2.0;
+    let grid_start_y = crate::config::WINDOW_HEIGHT / 2.0 - grid_size.y / 2.0;
 
+    // Draw path lines
     if editor_data.path.len() >= 2 {
         for i in 0..editor_data.path.len() - 1 {
             let start = editor_data.path[i];
             let end = editor_data.path[i + 1];
 
             let start_world = Vec2::new(
-                start.x as f32 * grid_size.x + grid_size.x * 0.5,
-                start.y as f32 * grid_size.y + grid_size.y * 0.5,
+                grid_start_x + start.x as f32 * grid_size.x,
+                grid_start_y - start.y as f32 * grid_size.y,
             );
 
             let end_world = Vec2::new(
-                end.x as f32 * grid_size.x + grid_size.x * 0.5,
-                end.y as f32 * grid_size.y + grid_size.y * 0.5,
+                grid_start_x + end.x as f32 * grid_size.x,
+                grid_start_y - end.y as f32 * grid_size.y,
             );
 
             gizmos.line_2d(start_world, end_world, Color::srgb(0.9, 0.3, 0.7));
@@ -412,16 +414,12 @@ fn render_editor_path(editor_data: Res<EditorData>, mut gizmos: Gizmos, map: Opt
             UVec2::new(27, 15) // Default dimensions if map not available
         };
 
-        // info!("dimensions: {}", dimensions);
-
         let grid_size = if let Some(map) = map.as_ref() {
             map.grid_size
         } else {
             Vec2::new(48.0, 48.0) // Default grid size if map not available
         };
 
-        // info!("overlay grid size: {}", grid_size);
-        // Calculate grid boundaries
         let grid_start_pos = if let Some(map) = map.as_ref() {
             map.grid_to_world(UVec2::new(0, 0))
         } else {
