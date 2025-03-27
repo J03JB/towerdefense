@@ -251,33 +251,36 @@ fn editor_input_handler(
             if let Ok(world_position) =
                 camera.viewport_to_world_2d(camera_transform, cursor_position)
             {
-                // Convert world position to grid position
-                let grid_size = if let Some(map) = map.as_ref() {
-                    map.grid_size
+                let grid_pos = if let Some(map) = map.as_ref() {
+                    map.world_to_grid(world_position)
                 } else {
-                    Vec2::new(48.0, 48.0) // Default grid size if map not available
+                    let grid_size = Vec2::new(48.0, 48.0);
+                    UVec2::new(
+                        (world_position.x / grid_size.x).floor() as u32,
+                        (world_position.y / grid_size.y).floor() as u32,
+                    )
                 };
 
-                let grid_pos = UVec2::new(
-                    (world_position.x / grid_size.x).floor() as u32,
-                    (world_position.y / grid_size.y).floor() as u32,
-                );
-
+                let grid_size = Vec2::new(48.0, 48.0);
                 match editor_data.current_tool {
                     EditorTool::PathPlacer => {
                         if !editor_data.path.contains(&grid_pos) {
                             editor_data.path.push(grid_pos);
 
-                            // Spawn a visual marker at this position
-                            let world_pos = Vec2::new(
-                                grid_pos.x as f32 * grid_size.x + grid_size.x * 0.5,
-                                grid_pos.y as f32 * grid_size.y + grid_size.y * 0.5,
-                            );
+                            let world_pos = if let Some(map) = map.as_ref() {
+                                map.grid_to_world(grid_pos)
+                            } else {
+                                let grid_size = Vec2::new(48.0, 48.0);
+                                Vec2::new(
+                                    grid_pos.x as f32 * grid_size.x + grid_size.x * 0.5,
+                                    grid_pos.y as f32 * grid_size.y + grid_size.y * 0.5,
+                                )
+                            };
 
                             commands.spawn((
                                 Sprite {
                                     color: Color::srgba(0.8, 0.3, 0.3, 0.7),
-                                    custom_size: Some(Vec2::new(grid_size.x, grid_size.y)),
+                                    custom_size: Some(Vec2::new(48.0, 48.0)),
                                     ..default()
                                 },
                                 Transform::from_translation(world_pos.extend(1.0)),
@@ -292,7 +295,7 @@ fn editor_input_handler(
                         commands.spawn((
                             Sprite {
                                 color: Color::srgba(0.2, 0.9, 0.2, 0.7),
-                                custom_size: Some(Vec2::new(grid_size.x, grid_size.y)),
+                                custom_size: Some(Vec2::new(48.0, 48.0)),
                                 ..default()
                             },
                             Transform::from_translation(
@@ -351,14 +354,12 @@ fn editor_input_handler(
         }
     }
 
-    // Right click to remove last path point
     if mouse_input.just_pressed(MouseButton::Right)
         && editor_data.current_tool == EditorTool::PathPlacer
     {
         editor_data.path.pop();
     }
 
-    // Handle keyboard shortcuts
     if key_press.just_pressed(KeyCode::Enter) {
         editor_data.current_tool = EditorTool::PathPlacer;
     } else if key_press.just_pressed(KeyCode::KeyS) {
@@ -371,8 +372,8 @@ fn editor_input_handler(
         // Ctrl+S to export
         export_level(&editor_data);
     } else if key_press.just_pressed(KeyCode::KeyG) {
-        // Toggle grid overlay
         editor_data.grid_overlay = !editor_data.grid_overlay;
+        info!("overlay")
     }
 }
 
@@ -383,7 +384,8 @@ fn render_editor_path(editor_data: Res<EditorData>, mut gizmos: Gizmos, map: Opt
         Vec2::new(48.0, 48.0)
     };
 
-    // Draw path lines
+    // info!("grid size: {}", grid_size);
+
     if editor_data.path.len() >= 2 {
         for i in 0..editor_data.path.len() - 1 {
             let start = editor_data.path[i];
@@ -403,24 +405,55 @@ fn render_editor_path(editor_data: Res<EditorData>, mut gizmos: Gizmos, map: Opt
         }
     }
 
-    // Draw grid overlay if enabled
     if editor_data.grid_overlay {
-        // Draw grid lines - assuming map dimensions are known
         let dimensions = if let Some(map) = map.as_ref() {
             map.dimensions
         } else {
             UVec2::new(27, 15) // Default dimensions if map not available
         };
 
+        // info!("dimensions: {}", dimensions);
+
+        let grid_size = if let Some(map) = map.as_ref() {
+            map.grid_size
+        } else {
+            Vec2::new(48.0, 48.0) // Default grid size if map not available
+        };
+
+        // info!("overlay grid size: {}", grid_size);
+        // Calculate grid boundaries
+        let grid_start_pos = if let Some(map) = map.as_ref() {
+            map.grid_to_world(UVec2::new(0, 0))
+        } else {
+            // Fallback calculation
+            let grid_width = dimensions.x as f32 * grid_size.x;
+            let grid_height = dimensions.y as f32 * grid_size.y;
+            Vec2::new(-grid_width / 2.0, grid_height / 2.0)
+        };
+
+        // Draw vertical grid lines
         for x in 0..=dimensions.x {
-            let start = Vec2::new(x as f32 * grid_size.x, 0.0);
-            let end = Vec2::new(x as f32 * grid_size.x, dimensions.y as f32 * grid_size.y);
+            let x_pos = grid_start_pos.x + (x as f32 * grid_size.x);
+            info!("xpos: {}", x_pos);
+            let start = Vec2::new(640.0, 360.0);
+            info!("start: {}", start);
+            // let end = Vec2::new(-640.0, -360.0);
+            let end = Vec2::new(
+                x_pos,
+                grid_start_pos.y - (dimensions.y as f32 * grid_size.y),
+            );
+            // info!("end pos: {}", end);
             gizmos.line_2d(start, end, Color::srgba(0.5, 0.5, 0.5, 0.3));
         }
 
+        // Draw horizontal grid lines
         for y in 0..=dimensions.y {
-            let start = Vec2::new(0.0, y as f32 * grid_size.y);
-            let end = Vec2::new(dimensions.x as f32 * grid_size.x, y as f32 * grid_size.y);
+            let y_pos = grid_start_pos.y - (y as f32 * grid_size.y);
+            let start = Vec2::new(grid_start_pos.x, y_pos);
+            let end = Vec2::new(
+                grid_start_pos.x + (dimensions.x as f32 * grid_size.x),
+                y_pos,
+            );
             gizmos.line_2d(start, end, Color::srgba(0.5, 0.5, 1.5, 0.3));
         }
     }

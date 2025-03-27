@@ -1,5 +1,6 @@
 // src/level.rs - Enhanced with wave management and path generation
 use crate::enemy::{EnemyType, spawn_enemy};
+use crate::config::{GRID_HEIGHT, GRID_WIDTH, CELL_SIZE};
 use crate::map::Map;
 use bevy::prelude::*;
 
@@ -128,8 +129,8 @@ fn create_map() -> Map {
     }
 
     Map {
-        grid_size: Vec2::new(32.0, 32.0), // Smaller grid for more room
-        dimensions: UVec2::new(40, 20),   // Larger map
+        grid_size: Vec2::new(CELL_SIZE, CELL_SIZE),
+        dimensions: UVec2::new(GRID_WIDTH as u32, GRID_HEIGHT as u32),
         path_tiles,
         buildable_tiles,
         start: UVec2::new(0, 10), // Start at the beginning of the path
