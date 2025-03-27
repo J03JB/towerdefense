@@ -10,6 +10,8 @@ mod ui;
 mod utils;
 mod grid;
 mod config;
+// mod level_loader;
+mod level_editor;
 
 use bevy::prelude::*;
 
@@ -35,8 +37,9 @@ fn main() {
         .add_plugins(tower::TowerPlugin)
         .add_plugins(enemy::EnemyPlugin)
         .add_plugins(projectile::ProjectilePlugin)
+        .add_plugins(level_editor::EditorPlugin)
         // .add_plugins(grid::GridPlugin)
         // .add_plugins(ui::UiPlugin)
-        .add_plugins(overlay::OverlayPlugin)
+        // .add_plugins(overlay::OverlayPlugin)
         .run();
 }
