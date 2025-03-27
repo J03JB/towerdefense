@@ -10,6 +10,7 @@ pub struct EditorPlugin;
 impl Plugin for EditorPlugin {
     fn build(&self, app: &mut App) {
         app.init_state::<EditorState>()
+            .init_resource::<EditorTextInput>()
             .add_systems(Startup, setup_editor)
             .add_systems(
                 Update,
@@ -17,11 +18,24 @@ impl Plugin for EditorPlugin {
                     editor_input_handler,
                     render_editor_path,
                     export_level_data,
+                    handle_save_dialog,
+                    handle_text_input,
                     toggle_editor_tool,
                 )
                     .run_if(in_state(EditorState::Active)),
             );
     }
+}
+#[derive(Component)]
+pub struct LevelNameInput;
+
+#[derive(Component)]
+pub struct SaveDialog;
+
+#[derive(Resource)]
+pub struct EditorTextInput {
+    pub level_name: String,
+    pub dialog_open: bool,
 }
 
 #[derive(States, Debug, Clone, Eq, PartialEq, Hash, Default, Reflect)]
@@ -67,7 +81,7 @@ pub struct LevelData {
 
 fn setup_editor(
     mut commands: Commands,
-    mut editor_state: ResMut<State<EditorState>>,
+    editor_state: ResMut<State<EditorState>>,
     mut next_state: ResMut<NextState<EditorState>>,
     asset_server: Res<AssetServer>,
 ) {
@@ -83,7 +97,7 @@ fn setup_editor(
                     padding: UiRect::all(Val::Px(10.0)),
                     ..default()
                 },
-                BackgroundColor(Color::srgb(0.3, 0.3, 0.3).into()),
+                BackgroundColor(Color::srgb(0.3, 0.3, 0.3)),
                 EditorToolDisplay,
             ))
             .with_children(|parent| {
@@ -107,7 +121,7 @@ fn setup_editor(
                             align_items: AlignItems::Center,
                             ..default()
                         },
-                        BackgroundColor(Color::srgb(0.15, 0.15, 0.15).into()),
+                        BackgroundColor(Color::srgb(0.15, 0.15, 0.15)),
                     ))
                     .with_children(|parent| {
                         parent.spawn((
@@ -140,7 +154,7 @@ fn setup_editor(
                             align_items: AlignItems::Center,
                             ..default()
                         },
-                        BackgroundColor(Color::srgb(0.15, 0.15, 0.15).into()),
+                        BackgroundColor(Color::srgb(0.15, 0.15, 0.15)),
                     ))
                     .with_children(|parent| {
                         parent.spawn((
@@ -165,7 +179,7 @@ fn setup_editor(
                             align_items: AlignItems::Center,
                             ..default()
                         },
-                        BackgroundColor(Color::srgb(0.15, 0.15, 0.15).into()),
+                        BackgroundColor(Color::srgb(0.15, 0.15, 0.15)),
                     ))
                     .with_children(|parent| {
                         parent.spawn((
@@ -183,7 +197,7 @@ fn setup_editor(
                     .spawn((
                         Button,
                         button_style.clone(),
-                        BackgroundColor(Color::srgb(0.15, 0.15, 0.15).into()),
+                        BackgroundColor(Color::srgb(0.15, 0.15, 0.15)),
                     ))
                     .with_children(|parent| {
                         parent.spawn((
@@ -216,14 +230,8 @@ fn setup_editor(
                     .insert(ExportButton);
             });
 
-        // Create a grid overlay
-        // This would be a system that draws grid lines
-
-        // Initialize editor data resource
         commands.insert_resource(EditorData::default());
 
-        // Set editor state to active
-        // editor_state.set(EditorState::Active);
         next_state.set(EditorState::Active);
     }
 }
@@ -233,7 +241,7 @@ struct EditorButton(EditorTool);
 
 #[derive(Component)]
 struct ExportButton;
-
+#[allow(clippy::too_many_arguments)]
 fn editor_input_handler(
     mut commands: Commands,
     mouse_input: Res<ButtonInput<MouseButton>>,
@@ -241,6 +249,7 @@ fn editor_input_handler(
     windows: Query<&Window, With<PrimaryWindow>>,
     camera_q: Query<(&Camera, &GlobalTransform)>,
     mut editor_data: ResMut<EditorData>,
+    editor_text_input: ResMut<EditorTextInput>,
     map: Option<Res<Map>>,
 ) {
     if mouse_input.just_pressed(MouseButton::Left) {
@@ -370,7 +379,7 @@ fn editor_input_handler(
         editor_data.current_tool = EditorTool::BuildableArea;
     } else if key_press.just_pressed(KeyCode::KeyS) && key_press.pressed(KeyCode::ControlLeft) {
         // Ctrl+S to export
-        export_level(&editor_data);
+        export_level(&editor_data, &editor_text_input.level_name);
     } else if key_press.just_pressed(KeyCode::KeyG) {
         editor_data.grid_overlay = !editor_data.grid_overlay;
         info!("overlay")
@@ -411,19 +420,18 @@ fn render_editor_path(editor_data: Res<EditorData>, mut gizmos: Gizmos, map: Opt
         let dimensions = if let Some(map) = map.as_ref() {
             map.dimensions
         } else {
-            UVec2::new(27, 15) // Default dimensions if map not available
+            UVec2::new(27, 15)
         };
 
         let grid_size = if let Some(map) = map.as_ref() {
             map.grid_size
         } else {
-            Vec2::new(48.0, 48.0) // Default grid size if map not available
+            Vec2::new(48.0, 48.0)
         };
 
         let grid_start_pos = if let Some(map) = map.as_ref() {
             map.grid_to_world(UVec2::new(0, 0))
         } else {
-            // Fallback calculation
             let grid_width = dimensions.x as f32 * grid_size.x;
             let grid_height = dimensions.y as f32 * grid_size.y;
             Vec2::new(-grid_width / 2.0, grid_height / 2.0)
@@ -432,15 +440,11 @@ fn render_editor_path(editor_data: Res<EditorData>, mut gizmos: Gizmos, map: Opt
         // Draw vertical grid lines
         for x in 0..=dimensions.x {
             let x_pos = grid_start_pos.x + (x as f32 * grid_size.x);
-            info!("xpos: {}", x_pos);
             let start = Vec2::new(640.0, 360.0);
-            info!("start: {}", start);
-            // let end = Vec2::new(-640.0, -360.0);
             let end = Vec2::new(
                 x_pos,
                 grid_start_pos.y - (dimensions.y as f32 * grid_size.y),
             );
-            // info!("end pos: {}", end);
             gizmos.line_2d(start, end, Color::srgba(0.5, 0.5, 0.5, 0.3));
         }
 
@@ -466,9 +470,7 @@ fn toggle_editor_tool(
         if matches!(interaction, Interaction::Pressed) {
             editor_data.current_tool = button.0.clone();
 
-            // Update the tool text
             if let Ok(mut text) = tool_text_query.get_single_mut() {
-                // Create a new TextSection
                 *text = Text::new(format!("Editor Mode: {:?}", editor_data.current_tool));
             }
         }
@@ -478,15 +480,18 @@ fn toggle_editor_tool(
 fn export_level_data(
     interaction_query: Query<&Interaction, (Changed<Interaction>, With<ExportButton>)>,
     editor_data: Res<EditorData>,
+    mut editor_text_input: ResMut<EditorTextInput>,
+    mut commands: Commands,
 ) {
     for interaction in &interaction_query {
         if matches!(interaction, Interaction::Pressed) {
-            export_level(&editor_data);
+            editor_text_input.dialog_open = true;
+            spawn_save_dialog(&mut commands, &mut editor_text_input);
         }
     }
 }
 
-fn export_level(editor_data: &EditorData) {
+fn export_level(editor_data: &EditorData, level_name: &str) {
     let level_data = LevelData {
         path: editor_data
             .path
@@ -508,17 +513,20 @@ fn export_level(editor_data: &EditorData) {
             .iter()
             .map(|pos| vec![pos.x, pos.y])
             .collect(),
-        dimensions: vec![27, 15], // Hard-coded for simplicity
+        dimensions: vec![27, 15],
     };
 
-    // Serialize the data to JSON
     if let Ok(json_string) = serde_json::to_string_pretty(&level_data) {
-        // Create a file for writing
-        if let Ok(mut file) = File::create("assets/levels/level_1.json") {
+        std::fs::create_dir_all("assets/levels").unwrap_or_else(|_| {
+            eprintln!("Failed to create levels directory");
+        });
+
+        let file_path = format!("assets/levels/{}.json", level_name);
+        if let Ok(mut file) = File::create(&file_path) {
             if let Err(e) = file.write_all(json_string.as_bytes()) {
                 eprintln!("Failed to write level data: {}", e);
             } else {
-                println!("Successfully exported level data to 'assets/levels/level_1.json'");
+                println!("Successfully exported level data to '{}'", file_path);
             }
         } else {
             eprintln!("Failed to create level file");
@@ -526,4 +534,373 @@ fn export_level(editor_data: &EditorData) {
     } else {
         eprintln!("Failed to serialize level data");
     }
+}
+#[derive(Component)]
+struct ConfirmSaveButton;
+
+#[derive(Component)]
+struct CancelSaveButton;
+
+impl Default for EditorTextInput {
+    fn default() -> Self {
+        Self {
+            level_name: "level_1".to_string(),
+            dialog_open: false,
+        }
+    }
+}
+
+fn handle_text_input(
+    mut editor_text_input: ResMut<EditorTextInput>,
+    mut text_query: Query<&mut Text, With<LevelNameInput>>,
+    keyboard_input: Res<ButtonInput<KeyCode>>,
+) {
+    if !editor_text_input.dialog_open {
+        return;
+    }
+
+    for key in keyboard_input.get_just_pressed() {
+        let mut name_changed = false;
+        match key {
+            KeyCode::Backspace => {
+                if !editor_text_input.level_name.is_empty() {
+                    editor_text_input.level_name.pop();
+                    name_changed = true;
+                    // level_name.pop();
+                }
+            }
+            KeyCode::Space => {
+                editor_text_input.level_name.push('_'); // Convert spaces to underscores
+                name_changed = true;
+            }
+
+            KeyCode::KeyA => {
+                editor_text_input.level_name.push('a');
+                name_changed = true;
+            }
+            KeyCode::KeyB => {
+                editor_text_input.level_name.push('b');
+                name_changed = true;
+            }
+            KeyCode::KeyC => {
+                editor_text_input.level_name.push('c');
+                name_changed = true;
+            }
+            KeyCode::KeyD => {
+                editor_text_input.level_name.push('d');
+                name_changed = true;
+            }
+            KeyCode::KeyE => {
+                editor_text_input.level_name.push('e');
+                name_changed = true;
+            }
+            KeyCode::KeyF => {
+                editor_text_input.level_name.push('f');
+                name_changed = true;
+            }
+            KeyCode::KeyG => {
+                editor_text_input.level_name.push('g');
+                name_changed = true;
+            }
+            KeyCode::KeyH => {
+                editor_text_input.level_name.push('h');
+                name_changed = true;
+            }
+            KeyCode::KeyI => {
+                editor_text_input.level_name.push('i');
+                name_changed = true;
+            }
+            KeyCode::KeyJ => {
+                editor_text_input.level_name.push('j');
+                name_changed = true;
+            }
+            KeyCode::KeyK => {
+                editor_text_input.level_name.push('k');
+                name_changed = true;
+            }
+            KeyCode::KeyL => {
+                editor_text_input.level_name.push('l');
+                name_changed = true;
+            }
+            KeyCode::KeyM => {
+                editor_text_input.level_name.push('m');
+                name_changed = true;
+            }
+            KeyCode::KeyN => {
+                editor_text_input.level_name.push('n');
+                name_changed = true;
+            }
+            KeyCode::KeyO => {
+                editor_text_input.level_name.push('o');
+                name_changed = true;
+            }
+            KeyCode::KeyP => {
+                editor_text_input.level_name.push('p');
+                name_changed = true;
+            }
+            KeyCode::KeyQ => {
+                editor_text_input.level_name.push('q');
+                name_changed = true;
+            }
+            KeyCode::KeyR => {
+                editor_text_input.level_name.push('r');
+                name_changed = true;
+            }
+            KeyCode::KeyS => {
+                editor_text_input.level_name.push('s');
+                name_changed = true;
+            }
+            KeyCode::KeyT => {
+                editor_text_input.level_name.push('t');
+                name_changed = true;
+            }
+            KeyCode::KeyU => {
+                editor_text_input.level_name.push('u');
+                name_changed = true;
+            }
+            KeyCode::KeyV => {
+                editor_text_input.level_name.push('v');
+                name_changed = true;
+            }
+            KeyCode::KeyW => {
+                editor_text_input.level_name.push('w');
+                name_changed = true;
+            }
+            KeyCode::KeyX => {
+                editor_text_input.level_name.push('x');
+                name_changed = true;
+            }
+            KeyCode::KeyY => {
+                editor_text_input.level_name.push('y');
+                name_changed = true;
+            }
+            KeyCode::KeyZ => {
+                editor_text_input.level_name.push('z');
+                name_changed = true;
+            }
+            KeyCode::Digit0 => {
+                editor_text_input.level_name.push('0');
+                name_changed = true;
+            }
+            KeyCode::Digit1 => {
+                editor_text_input.level_name.push('1');
+                name_changed = true;
+            }
+            KeyCode::Digit2 => {
+                editor_text_input.level_name.push('2');
+                name_changed = true;
+            }
+            KeyCode::Digit3 => {
+                editor_text_input.level_name.push('3');
+                name_changed = true;
+            }
+            KeyCode::Digit4 => {
+                editor_text_input.level_name.push('4');
+                name_changed = true;
+            }
+            KeyCode::Digit5 => {
+                editor_text_input.level_name.push('5');
+                name_changed = true;
+            }
+            KeyCode::Digit6 => {
+                editor_text_input.level_name.push('6');
+                name_changed = true;
+            }
+            KeyCode::Digit7 => {
+                editor_text_input.level_name.push('7');
+                name_changed = true;
+            }
+            KeyCode::Digit8 => {
+                editor_text_input.level_name.push('8');
+                name_changed = true;
+            }
+            KeyCode::Digit9 => {
+                editor_text_input.level_name.push('9');
+                name_changed = true;
+            }
+            KeyCode::Minus => {
+                editor_text_input.level_name.push('-');
+                name_changed = true;
+            }
+            _ => {}
+        }
+        if name_changed {
+            for mut text in text_query.iter_mut() {
+                *text = Text::new(editor_text_input.level_name.clone());
+            }
+        }
+    }
+
+    // if level_name != editor_text_input.level_name {
+    //     editor_text_input.level_name = level_name;
+
+    // Update displayed text
+    if let Ok(mut text) = text_query.get_single_mut() {
+        *text = Text::new(editor_text_input.level_name.clone());
+    }
+}
+
+fn handle_save_dialog(
+    mut commands: Commands,
+    mut editor_text_input: ResMut<EditorTextInput>,
+    cancel_interaction: Query<&Interaction, (Changed<Interaction>, With<CancelSaveButton>)>,
+    save_interaction: Query<&Interaction, (Changed<Interaction>, With<ConfirmSaveButton>)>,
+    dialog_query: Query<Entity, With<SaveDialog>>,
+    editor_data: Res<EditorData>,
+) {
+    // Handle cancel button
+    for interaction in cancel_interaction.iter() {
+        if matches!(interaction, Interaction::Pressed) {
+            editor_text_input.dialog_open = false;
+            for entity in dialog_query.iter() {
+                commands.entity(entity).despawn_recursive();
+            }
+        }
+    }
+
+    // Handle save button
+    for interaction in save_interaction.iter() {
+        if matches!(interaction, Interaction::Pressed) {
+            export_level(&editor_data, &editor_text_input.level_name);
+            editor_text_input.dialog_open = false;
+            for entity in dialog_query.iter() {
+                commands.entity(entity).despawn_recursive();
+            }
+        }
+    }
+    // for interaction in &cancel_query {
+    //     if matches!(interaction, Interaction::Pressed) {
+    //         editor_text_input.dialog_open = false;
+    //         for entity in &dialog_query {
+    //             commands.entity(entity).despawn_recursive();
+    //         }
+    //     }
+    // }
+    //
+    // for interaction in &save_query {
+    //     if matches!(interaction, Interaction::Pressed) {
+    //         export_level(&editor_data, &editor_text_input.level_name);
+    //         editor_text_input.dialog_open = false;
+    //         for entity in &dialog_query {
+    //             commands.entity(entity).despawn_recursive();
+    //         }
+    //     }
+    // }
+}
+
+fn spawn_save_dialog(commands: &mut Commands, editor_text_input: &mut ResMut<EditorTextInput>) {
+    commands
+        .spawn((
+            Node {
+                position_type: PositionType::Absolute,
+                left: Val::Px(300.0),
+                top: Val::Px(200.0),
+                width: Val::Px(400.0),
+                height: Val::Auto,
+                padding: UiRect::all(Val::Px(20.0)),
+                border: UiRect::all(Val::Px(2.0)),
+                flex_direction: FlexDirection::Column,
+                row_gap: Val::Px(10.0),
+                ..default()
+            },
+            BackgroundColor(Color::srgb(0.2, 0.2, 0.2)),
+            BorderColor(Color::srgb(0.7, 0.7, 0.7)),
+            SaveDialog,
+        ))
+        .with_children(|parent| {
+            // Title
+            parent.spawn((
+                Text::new("Save Level"),
+                TextFont {
+                    font_size: 24.0,
+                    ..default()
+                },
+                TextColor::WHITE,
+            ));
+
+            // Text input field
+            parent
+                .spawn((
+                    Node {
+                        width: Val::Percent(100.0),
+                        height: Val::Px(40.0),
+                        border: UiRect::all(Val::Px(1.0)),
+                        padding: UiRect::all(Val::Px(5.0)),
+                        ..default()
+                    },
+                    BackgroundColor(Color::srgb(0.1, 0.1, 0.1)),
+                    BorderColor(Color::srgb(0.5, 0.5, 0.5)),
+                    LevelNameInput,
+                ))
+                .with_children(|parent| {
+                    parent.spawn((
+                        Text::new(editor_text_input.level_name.clone()),
+                        TextFont {
+                            font_size: 18.0,
+                            ..default()
+                        },
+                        TextColor::WHITE,
+                    ));
+                });
+
+            // Button row
+            parent
+                .spawn(Node {
+                    width: Val::Percent(100.0),
+                    justify_content: JustifyContent::End,
+                    column_gap: Val::Px(10.0),
+                    ..default()
+                })
+                .with_children(|parent| {
+                    // Cancel button
+                    parent
+                        .spawn((
+                            Button,
+                            Node {
+                                width: Val::Px(100.0),
+                                height: Val::Px(40.0),
+                                justify_content: JustifyContent::Center,
+                                align_items: AlignItems::Center,
+                                ..default()
+                            },
+                            BackgroundColor(Color::srgb(0.5, 0.1, 0.1)),
+                            CancelSaveButton,
+                        ))
+                        .with_children(|parent| {
+                            parent.spawn((
+                                Text::new("Cancel"),
+                                TextFont {
+                                    font_size: 16.0,
+                                    ..default()
+                                },
+                                TextColor::WHITE,
+                            ));
+                        });
+
+                    // Save button
+                    parent
+                        .spawn((
+                            Button,
+                            Node {
+                                width: Val::Px(100.0),
+                                height: Val::Px(40.0),
+                                justify_content: JustifyContent::Center,
+                                align_items: AlignItems::Center,
+                                ..default()
+                            },
+                            BackgroundColor(Color::srgb(0.1, 0.5, 0.1)),
+                            ConfirmSaveButton,
+                        ))
+                        .with_children(|parent| {
+                            parent.spawn((
+                                Text::new("Save"),
+                                TextFont {
+                                    font_size: 16.0,
+                                    ..default()
+                                },
+                                TextColor::WHITE,
+                            ));
+                        });
+                });
+        });
 }
