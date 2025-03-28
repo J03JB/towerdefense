@@ -1,5 +1,5 @@
-use crate::map::Map;
 use crate::game_state::GameState;
+use crate::map::Map;
 use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
 use serde::{Deserialize, Serialize};
@@ -17,6 +17,8 @@ impl Plugin for EditorPlugin {
                 Update,
                 (
                     editor_input_handler,
+                    spawn_context_menu,
+                    handle_context_menu_interaction,
                     render_editor_path,
                     export_level_data,
                     handle_save_dialog,
@@ -907,4 +909,205 @@ fn spawn_save_dialog(commands: &mut Commands, editor_text_input: &mut ResMut<Edi
                         });
                 });
         });
+}
+
+// Add these components to src/level_editor.rs
+
+#[derive(Component)]
+struct ContextMenu;
+
+#[derive(Component)]
+enum ContextMenuOption {
+    PathTool,
+    StartPoint,
+    EndPoint,
+    BuildableArea,
+    Delete,
+    Save,
+}
+
+fn spawn_context_menu(
+    mut commands: Commands,
+    mouse_input: Res<ButtonInput<MouseButton>>,
+    windows: Query<&Window, With<PrimaryWindow>>,
+    context_menu_query: Query<Entity, With<ContextMenu>>,
+    markers_query: Query<(Entity, &Transform), With<EditorPathMarker>>,
+) {
+    // If right mouse button was just pressed
+    if mouse_input.just_pressed(MouseButton::Right) {
+        // First, despawn any existing context menu
+        for entity in context_menu_query.iter() {
+            commands.entity(entity).despawn_recursive();
+        }
+
+        // Get cursor position for menu placement
+        if let Some(cursor_position) = windows.single().cursor_position() {
+            // Spawn context menu at cursor position
+            commands
+                .spawn((
+                    Node {
+                        position_type: PositionType::Absolute,
+                        left: Val::Px(cursor_position.x),
+                        top: Val::Px(cursor_position.y),
+                        width: Val::Px(150.0),
+                        // This will be determined by child content
+                        height: Val::Auto,
+                        padding: UiRect::all(Val::Px(5.0)),
+                        border: UiRect::all(Val::Px(1.0)),
+                        flex_direction: FlexDirection::Column,
+                        ..default()
+                    },
+                    BackgroundColor(Color::srgb(0.2, 0.2, 0.2)),
+                    BorderColor(Color::srgb(0.7, 0.7, 0.7)),
+                    ContextMenu,
+                ))
+                .with_children(|parent| {
+                    // Add menu options
+                    spawn_menu_option(parent, "Path Tool", ContextMenuOption::PathTool);
+                    spawn_menu_option(parent, "Start Point", ContextMenuOption::StartPoint);
+                    spawn_menu_option(parent, "End Point", ContextMenuOption::EndPoint);
+                    spawn_menu_option(parent, "Buildable Area", ContextMenuOption::BuildableArea);
+
+                    // Add a separator
+                    parent
+                        .spawn(Node {
+                            width: Val::Percent(100.0),
+                            height: Val::Px(1.0),
+                            margin: UiRect::vertical(Val::Px(5.0)),
+                            ..default()
+                        })
+                        .insert(BackgroundColor(Color::srgb(0.5, 0.5, 0.5)));
+
+                    spawn_menu_option(parent, "Delete Tile", ContextMenuOption::Delete);
+                    spawn_menu_option(parent, "Save Level", ContextMenuOption::Save);
+                });
+        }
+    }
+
+    // Close menu when clicking elsewhere
+    if mouse_input.just_pressed(MouseButton::Left) {
+        for entity in context_menu_query.iter() {
+            commands.entity(entity).despawn_recursive();
+        }
+    }
+}
+
+fn spawn_menu_option(parent: &mut ChildBuilder, text: &str, option: ContextMenuOption) {
+    parent
+        .spawn((
+            Button,
+            Node {
+                width: Val::Percent(100.0),
+                height: Val::Px(30.0),
+                margin: UiRect::vertical(Val::Px(2.0)),
+                justify_content: JustifyContent::FlexStart,
+                align_items: AlignItems::Center,
+                padding: UiRect::horizontal(Val::Px(10.0)),
+                ..default()
+            },
+            BackgroundColor(Color::srgb(0.15, 0.15, 0.15)),
+            option,
+        ))
+        .with_children(|parent| {
+            parent.spawn((
+                Text::new(text),
+                TextFont {
+                    font_size: 16.0,
+                    ..default()
+                },
+                TextColor::WHITE,
+            ));
+        });
+}
+
+#[allow(clippy::too_many_arguments)]
+fn handle_context_menu_interaction(
+    mut commands: Commands,
+    interaction_query: Query<
+        (&Interaction, &ContextMenuOption),
+        (Changed<Interaction>, With<Button>),
+    >,
+    context_menu_query: Query<Entity, With<ContextMenu>>,
+    mut editor_data: ResMut<EditorData>,
+    mut editor_text_input: ResMut<EditorTextInput>,
+    windows: Query<&Window, With<PrimaryWindow>>,
+    camera_q: Query<(&Camera, &GlobalTransform)>,
+    map: Option<Res<Map>>,
+    markers_query: Query<(Entity, &Transform), With<EditorPathMarker>>,
+) {
+    for (interaction, option) in interaction_query.iter() {
+        if matches!(interaction, Interaction::Pressed) {
+            match option {
+                ContextMenuOption::PathTool => {
+                    editor_data.current_tool = EditorTool::PathPlacer;
+                }
+                ContextMenuOption::StartPoint => {
+                    editor_data.current_tool = EditorTool::StartPoint;
+                }
+                ContextMenuOption::EndPoint => {
+                    editor_data.current_tool = EditorTool::EndPoint;
+                }
+                ContextMenuOption::BuildableArea => {
+                    editor_data.current_tool = EditorTool::BuildableArea;
+                }
+                ContextMenuOption::Delete => {
+                    // Get current cursor position
+                    if let Some(cursor_position) = windows.single().cursor_position() {
+                        let (camera, camera_transform) = camera_q.single();
+
+                        if let Ok(world_position) =
+                            camera.viewport_to_world_2d(camera_transform, cursor_position)
+                        {
+                            let grid_pos = if let Some(map) = map.as_ref() {
+                                map.world_to_grid(world_position)
+                            } else {
+                                let grid_size = Vec2::new(48.0, 48.0);
+                                UVec2::new(
+                                    (world_position.x / grid_size.x).floor() as u32,
+                                    (world_position.y / grid_size.y).floor() as u32,
+                                )
+                            };
+
+                            // Remove from appropriate lists
+                            editor_data.path.retain(|&pos| pos != grid_pos);
+                            editor_data.buildable_areas.retain(|&pos| pos != grid_pos);
+
+                            // Clear start/end if they match
+                            if editor_data.start == Some(grid_pos) {
+                                editor_data.start = None;
+                            }
+
+                            if editor_data.end == Some(grid_pos) {
+                                editor_data.end = None;
+                            }
+
+                            // Remove visual markers (handled in a separate function)
+                            let grid_size = 48.0;
+                            let grid_pos_world = Vec2::new(
+                                grid_pos.x as f32 * 48.0 + 24.0,
+                                grid_pos.y as f32 * 48.0 + 24.0,
+                            );
+                            for (entity, transform) in markers_query.iter() {
+                                let pos =
+                                    Vec2::new(transform.translation.x, transform.translation.y);
+                                if pos.distance(grid_pos_world) < 5.0 {
+                                    commands.entity(entity).despawn();
+                                }
+                            }
+                        }
+                    }
+                }
+                ContextMenuOption::Save => {
+                    // Show save dialog
+                    editor_text_input.dialog_open = true;
+                    spawn_save_dialog(&mut commands, &mut editor_text_input);
+                }
+            }
+
+            // Close the context menu after selection
+            for entity in context_menu_query.iter() {
+                commands.entity(entity).despawn_recursive();
+            }
+        }
+    }
 }
