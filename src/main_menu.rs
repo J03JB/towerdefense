@@ -125,7 +125,6 @@ fn setup_game_over(
     mut commands: Commands,
     player_resource: Res<crate::game_state::PlayerResource>,
 ) {
-    // Display game over screen with score
     commands
         .spawn((
             Node {
@@ -142,7 +141,6 @@ fn setup_game_over(
             MenuUI,
         ))
         .with_children(|parent| {
-            // Game Over Text
             parent.spawn((
                 Text::new("Game Over"),
                 TextFont { 
@@ -156,7 +154,6 @@ fn setup_game_over(
                 },
             ));
 
-            // Score Text
             parent.spawn((
                 Text::new(format!("Score: {}", player_resource.score)),
                 TextFont { 
@@ -170,7 +167,6 @@ fn setup_game_over(
                 },
             ));
 
-            // Button to return to main menu
             parent
                 .spawn(Node {
                     margin: UiRect::all(Val::Px(20.0)),

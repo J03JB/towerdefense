@@ -1,4 +1,15 @@
-set game size
+[ Ui ]
+[ ] Make game resizable
+[ ] character screen
+[ ] setting menu
+[ ] level select screen
+[ ] shop
+
+[ Editor ]
+[ ] start and end point need fixing
+[ ] input box needs to clear text
+[ ] no passthrough on menu bar
+[ ] set up textures to place (path)
 
 
 

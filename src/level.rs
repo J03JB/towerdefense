@@ -1,6 +1,6 @@
 // src/level.rs - Enhanced with wave management and path generation
+use crate::config::{CELL_SIZE, GRID_HEIGHT, GRID_WIDTH};
 use crate::enemy::{EnemyType, spawn_enemy};
-use crate::config::{GRID_HEIGHT, GRID_WIDTH, CELL_SIZE};
 use crate::map::Map;
 use bevy::prelude::*;
 
@@ -57,28 +57,34 @@ fn setup_level(mut commands: Commands, asset_server: Res<AssetServer>) {
 
     let total_enemies = enemies_to_spawn.len();
 
-    // Initialize level resource
     commands.insert_resource(Level {
         current_level: 1,
         waves,
         current_wave_index: 0,
         wave_in_progress: false,
-      spawn_timer: Timer::from_seconds(10000.0, TimerMode::Once),
+        spawn_timer: Timer::from_seconds(10000.0, TimerMode::Once),
         enemies_to_spawn,
         enemies_spawned: 0,
         enemies_remaining: total_enemies,
     });
 
-    // Spawn the map visually
     spawn_map_visuals(&mut commands, &asset_server, &map);
 
-    // Add the map as a resource
     commands.insert_resource(map);
 }
 
-fn create_map() -> Map {
-    // Sample path for enemies to follow (serpentine or other path)
-    let mut path_tiles = Vec::new();
+fn create_map(asset_server: Res<AssetServer>) -> Map {
+    // Load level file
+    let level_handle = asset_server.load("levels/level_1.json");
+    
+    if let Some(level_data) = level_assets.get(&level_handle) {
+        // Convert path from JSON format to game format
+        let path_tiles: Vec<UVec2> = level_data.path
+            .iter()
+            .map(|coords| UVec2::new(coords[0], coords[1]))
+            .collect();
+    }
+    // let mut path_tiles = Vec::new();
 
     // Create buildable tiles (all tiles except path and borders)
     let mut buildable_tiles = Vec::new();
@@ -101,6 +107,38 @@ fn create_map() -> Map {
         end: UVec2::new(39, 15),  // End at the end of the path
     }
 }
+fn load_level(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    level_assets: Res<Assets<LevelData>>,
+) {
+    // Load level file
+    let level_handle = asset_server.load("levels/level_1.json");
+    
+    if let Some(level_data) = level_assets.get(&level_handle) {
+        // Convert path from JSON format to game format
+        let path_tiles: Vec<UVec2> = level_data.path
+            .iter()
+            .map(|coords| UVec2::new(coords[0], coords[1]))
+            .collect();
+            
+        // Create Map resource from loaded data
+        let map = Map {
+            grid_size: Vec2::new(48.0, 48.0),
+            dimensions: UVec2::new(level_data.dimensions[0], level_data.dimensions[1]),
+            path_tiles,
+            buildable_tiles: level_data.buildable_areas
+                .iter()
+                .map(|coords| UVec2::new(coords[0], coords[1]))
+                .collect(),
+            start: UVec2::new(level_data.start[0], level_data.start[1]),
+            end: UVec2::new(level_data.end[0], level_data.end[1]),
+        };
+        
+        commands.insert_resource(map);
+    }
+}
+
 
 // Helper to determine if a position is near the path (within buffer distance)
 fn is_near_path(path: &[UVec2], pos: UVec2, buffer: u32) -> bool {
