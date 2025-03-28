@@ -1,4 +1,5 @@
 use crate::map::Map;
+use crate::game_state::GameState;
 use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
 use serde::{Deserialize, Serialize};
@@ -84,6 +85,7 @@ fn setup_editor(
     editor_state: ResMut<State<EditorState>>,
     mut next_state: ResMut<NextState<EditorState>>,
     asset_server: Res<AssetServer>,
+    mut game_state: ResMut<NextState<GameState>>,
 ) {
     let args: Vec<String> = std::env::args().collect();
     if args.iter().any(|arg| arg == "--editor") {
@@ -233,6 +235,8 @@ fn setup_editor(
         commands.insert_resource(EditorData::default());
 
         next_state.set(EditorState::Active);
+
+        game_state.set(GameState::Playing);
     }
 }
 
