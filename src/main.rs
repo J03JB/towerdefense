@@ -12,6 +12,7 @@ mod grid;
 mod config;
 // mod level_loader;
 mod level_editor;
+mod main_menu;
 
 use bevy::prelude::*;
 
@@ -32,6 +33,7 @@ fn main() {
         }
         ).set(ImagePlugin::default_nearest()))
         .add_plugins(game_state::GameStatePlugin)
+        .add_plugins(main_menu::MainMenuPlugin)
         .add_plugins(render::RenderPlugin)
         .add_plugins(level::LevelPlugin)
         .add_plugins(tower::TowerPlugin)

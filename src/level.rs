@@ -80,42 +80,6 @@ fn create_map() -> Map {
     // Sample path for enemies to follow (serpentine or other path)
     let mut path_tiles = Vec::new();
 
-    // Create a serpentine path through the map
-    // Start at (0, 10)
-    let mut x = 0;
-    let mut y = 10;
-    path_tiles.push(UVec2::new(x, y));
-
-    // Right to (15, 10)
-    while x < 15 {
-        x += 1;
-        path_tiles.push(UVec2::new(x, y));
-    }
-
-    // Up to (15, 5)
-    while y > 5 {
-        y -= 1;
-        path_tiles.push(UVec2::new(x, y));
-    }
-
-    // Right to (30, 5)
-    while x < 30 {
-        x += 1;
-        path_tiles.push(UVec2::new(x, y));
-    }
-
-    // Down to (30, 15)
-    while y < 15 {
-        y += 1;
-        path_tiles.push(UVec2::new(x, y));
-    }
-
-    // Right to (39, 15) - end
-    while x < 39 {
-        x += 1;
-        path_tiles.push(UVec2::new(x, y));
-    }
-
     // Create buildable tiles (all tiles except path and borders)
     let mut buildable_tiles = Vec::new();
     for y_pos in 0..20 {
