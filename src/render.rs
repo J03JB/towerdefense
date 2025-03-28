@@ -1,14 +1,15 @@
-use crate::config::{WINDOW_HEIGHT, WINDOW_WIDTH};
+use crate::map::Map;
 use crate::overlay::MainCamera;
+
 use bevy::prelude::*;
-use bevy::render::camera::ScalingMode;
+use bevy::window::PrimaryWindow;
 
 pub struct RenderPlugin;
 
 impl Plugin for RenderPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Startup, setup_camera)
-            .add_systems(Update, update_sprites);
+            .add_systems(Update, (highlight_tile_under_cursor,update_sprites));
     }
 }
 
@@ -17,9 +18,53 @@ fn setup_camera(mut commands: Commands) {
 }
 
 fn update_sprites() {
-    // Update sprite positions and animations
+}
+
+
+#[derive(Component)]
+pub struct TileHighlight;
+
+pub fn highlight_tile_under_cursor(
+    mut commands: Commands,
+    map: Res<Map>,
+    windows: Query<&Window, With<PrimaryWindow>>,
+    camera_q: Query<(&Camera, &GlobalTransform), With<crate::overlay::MainCamera>>,
+    highlight: Query<Entity, With<TileHighlight>>,
+) {
+    let (camera, camera_transform) = camera_q.single();
+    let window = windows.single();
+
+    if let Some(cursor_position) = window.cursor_position() {
+        if let Ok(world_position) = camera.viewport_to_world_2d(camera_transform, cursor_position) {
+            let grid_x = ((world_position.x + crate::config::WINDOW_WIDTH / 2.0) / map.grid_size.x).floor() as u32;
+            let grid_y = ((crate::config::WINDOW_HEIGHT / 2.0 - world_position.y) / map.grid_size.y).floor() as u32;
+            
+            let tile_center_x = (grid_x as f32 * map.grid_size.x) + (map.grid_size.x / 2.0) - crate::config::WINDOW_WIDTH / 2.0;
+            let tile_center_y = crate::config::WINDOW_HEIGHT / 2.0 - (grid_y as f32 * map.grid_size.y) - (map.grid_size.y / 2.0);
+            
+            // info!(
+            //     "Cursor at world: ({:.1}, {:.1}), Grid: ({}, {}), Tile center: ({:.1}, {:.1})",
+            //     world_position.x, world_position.y, 
+            //     grid_x, grid_y,
+            //     tile_center_x, tile_center_y
+            // );
+            
+            if let Ok(highlight_entity) = highlight.get_single() {
+                commands.entity(highlight_entity).despawn();
+            }
+            
+            commands.spawn((
+                Sprite {
+                    color: Color::srgba(1.0, 1.0, 1.0, 0.3),
+                    custom_size: Some(Vec2::new(map.grid_size.x, map.grid_size.y)),
+                    ..default()
+                },
+                Transform::from_translation(Vec3::new(tile_center_x, tile_center_y, 10.0)),
+                TileHighlight,
+            ));
+        }
+    }
 }
 
 pub fn render_background() {
-
 }
