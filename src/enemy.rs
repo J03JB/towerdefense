@@ -31,7 +31,6 @@ pub enum EnemyType {
 }
 
 fn setup_enemies() {
-    // This will be called by the wave system when spawning enemies
 }
 
 /// Spawns an enemy at the start of the path

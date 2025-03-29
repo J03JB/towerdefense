@@ -1,4 +1,3 @@
-// src/level.rs - Enhanced with wave management and path generation
 use crate::config::{CELL_SIZE, GRID_HEIGHT, GRID_WIDTH};
 use crate::enemy::{EnemyType, spawn_enemy};
 use crate::map::Map;
@@ -100,7 +99,23 @@ fn setup_level(mut commands: Commands, asset_server: Res<AssetServer>) {
 
 fn create_map() -> Map {
     let mut path_tiles = Vec::new();
-
+    let mut x = 0;
+    let mut y = 10;
+    path_tiles.push(UVec2::new(x, y));
+    while x < 15 {
+        x += 1;
+        path_tiles.push(UVec2::new(x, y));
+    }
+    // Up to (15, 5)
+    while y > 5 {
+        y -= 1;
+        path_tiles.push(UVec2::new(x, y));
+    }
+    // Right to (30, 5)
+    while x < 27 {
+        x += 1;
+        path_tiles.push(UVec2::new(x, y));
+    }
     // Create buildable tiles (all tiles except path and borders)
     let mut buildable_tiles = Vec::new();
     for y_pos in 0..20 {
@@ -188,7 +203,6 @@ fn spawn_map_visuals(commands: &mut Commands, asset_server: &Res<AssetServer>, m
         for x in 0..map.dimensions.x {
             let world_pos = map.grid_to_world(UVec2::new(x, y));
 
-            // Spawn grass background tile
             commands.spawn((
                 Sprite {
                     image: asset_server.load("textures/grass.png"),
@@ -205,7 +219,8 @@ fn spawn_map_visuals(commands: &mut Commands, asset_server: &Res<AssetServer>, m
 
         commands.spawn((
             Sprite {
-                image: asset_server.load("textures/path.png"),
+                image: asset_server.load("textures/path01.png"),
+                custom_size: Some(Vec2::new(CELL_SIZE, CELL_SIZE)),
                 ..default()
             },
             Transform::from_translation(Vec3::new(world_pos.x, world_pos.y, 0.1)),
