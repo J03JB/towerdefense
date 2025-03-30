@@ -71,6 +71,7 @@ pub fn setup_texture_selector(mut commands: Commands, asset_server: Res<AssetSer
             BackgroundColor(Color::srgb(0.2, 0.2, 0.2)),
             BorderColor(Color::srgb(0.7, 0.7, 0.7)),
             TextureSelectorPanel,
+            Visibility::Visible,
         ))
         .with_children(|parent| {
             // Title
@@ -87,7 +88,7 @@ pub fn setup_texture_selector(mut commands: Commands, asset_server: Res<AssetSer
             for texture_path in &textures.paths {
                 let texture_name = texture_path
                     .split('/')
-                    .last()
+                    .next_back()
                     .unwrap_or(texture_path)
                     .to_string();
                 
@@ -174,29 +175,25 @@ pub fn handle_texture_selection(
 pub fn toggle_texture_panel(
     keyboard_input: Res<ButtonInput<KeyCode>>, 
     mut editor_data: Option<ResMut<EditorData>>,
-    mut panel_query: Query<&mut Style, With<TextureSelectorPanel>>,
+    mut panel_query: Query<&mut Visibility, With<TextureSelectorPanel>>,
 ) {
     if keyboard_input.just_pressed(KeyCode::KeyT) {
-        if let Ok(mut style) = panel_query.get_single_mut() {
+        if let Ok(mut visibility) = panel_query.get_single_mut() {
             // Toggle panel visibility
-            style.display = if style.display == Display::None {
-                // If we have editor data, update the tool
-                if let Some(mut editor_data) = editor_data.as_mut() {
-                    editor_data.current_tool = EditorTool::TextureSelector;
-                }
-                Display::Flex
-            } else {
-                // If we have editor data, revert to path placement
-                if let Some(mut editor_data) = editor_data.as_mut() {
-                    editor_data.current_tool = EditorTool::PathPlacer;
-                }
-                Display::None
+            *visibility = match *visibility {
+                Visibility::Inherited | Visibility::Visible => Visibility::Hidden,
+                Visibility::Hidden => Visibility::Visible,
             };
+            if let Some(mut editor_data) = editor_data.as_mut() {
+                editor_data.current_tool  = match *visibility {
+                    Visibility::Visible => EditorTool::TextureSelector,
+                    _ => EditorTool::PathPlacer,
+                };
+            }
         }
     }
 }
 
-// Helper function to get currently selected texture
 pub fn get_selected_texture(textures: &Res<AvailableTextures>) -> String {
     textures.selected.clone().unwrap_or_else(|| "textures/path01.png".to_string())
 }
