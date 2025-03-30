@@ -74,7 +74,6 @@ pub fn setup_texture_selector(mut commands: Commands, asset_server: Res<AssetSer
             Visibility::Visible,
         ))
         .with_children(|parent| {
-            // Title
             parent.spawn((
                 Text::new("Path Textures"),
                 TextFont {
