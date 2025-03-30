@@ -57,3 +57,6 @@ pub fn key_to_char(key: KeyCode) -> Option<char> {
     }
 }
 
+pub fn format_me(a: &str, b: &str, c: &str) -> String {
+    [a, b, c].join(" ")
+}

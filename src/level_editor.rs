@@ -446,12 +446,12 @@ fn render_editor_path(editor_data: Res<EditorData>, mut gizmos: Gizmos, map: Opt
         // Draw vertical grid lines
         for x in 0..=dimensions.x {
             let x_pos = grid_start_pos.x + (x as f32 * grid_size.x);
-            let start = Vec2::new(640.0, 360.0);
+            let start = Vec2::new(grid_start_x, x_pos);
             let end = Vec2::new(
                 x_pos,
                 grid_start_pos.y - (dimensions.y as f32 * grid_size.y),
             );
-            gizmos.line_2d(start, end, Color::srgba(0.5, 0.5, 0.5, 0.3));
+            gizmos.line_2d(start, end, Color::srgba(0.2, 0.2, 0.2, 0.8));
         }
 
         // Draw horizontal grid lines
@@ -462,7 +462,7 @@ fn render_editor_path(editor_data: Res<EditorData>, mut gizmos: Gizmos, map: Opt
                 grid_start_pos.x + (dimensions.x as f32 * grid_size.x),
                 y_pos,
             );
-            gizmos.line_2d(start, end, Color::srgba(0.5, 0.5, 1.5, 0.3));
+            gizmos.line_2d(start, end, Color::srgba(0.2, 0.2, 0.4, 0.8));
         }
     }
 }
