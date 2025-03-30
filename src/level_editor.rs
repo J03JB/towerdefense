@@ -467,21 +467,21 @@ fn render_editor_path(editor_data: Res<EditorData>, mut gizmos: Gizmos, map: Opt
     }
 }
 
-fn toggle_editor_tool(
-    interaction_query: Query<(&Interaction, &EditorButton), (Changed<Interaction>, With<Button>)>,
-    mut editor_data: ResMut<EditorData>,
-    mut tool_text_query: Query<&mut Text, With<EditorToolDisplay>>,
-) {
-    for (interaction, button) in &interaction_query {
-        if matches!(interaction, Interaction::Pressed) {
-            editor_data.current_tool = button.0.clone();
+  fn toggle_editor_tool(
+      buttons: Query<(&Interaction, &EditorButton), Changed<Interaction>>,
+      mut editor_data: ResMut<EditorData>,
+      mut text_query: Query<&mut Text, With<EditorToolDisplay>>,
+  ) {
+      for (interaction, button) in &buttons {
+          if let Interaction::Pressed = interaction {
+              editor_data.current_tool = button.0.clone();
 
-            if let Ok(mut text) = tool_text_query.get_single_mut() {
-                *text = Text::new(format!("Editor Mode: {:?}", editor_data.current_tool));
-            }
-        }
-    }
-}
+              if let Ok(mut text) = text_query.get_single_mut() {
+                  *text = Text::new(format!("Editor Mode: {:?}", editor_data.current_tool));
+              }
+          }
+      }
+  }
 
 fn export_level_data(
     interaction_query: Query<&Interaction, (Changed<Interaction>, With<ExportButton>)>,
