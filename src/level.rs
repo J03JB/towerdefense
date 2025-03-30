@@ -1,5 +1,6 @@
 use crate::config::{CELL_SIZE, GRID_HEIGHT, GRID_WIDTH};
 use crate::enemy::{EnemyType, spawn_enemy};
+use crate::level_textures::PathTexture;
 use crate::map::Map;
 use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
@@ -41,61 +42,62 @@ pub struct WaveCompleteEvent {
 #[derive(Resource, Clone, Deserialize)]
 pub struct LevelData {
     pub path: Vec<Vec<u32>>,            // Stored as [[x, y], [x, y], ...]
+    pub path_textures: Vec<PathTexture>,
     pub start: Vec<u32>,                // [x, y]
     pub end: Vec<u32>,                  // [x, y]
     pub buildable_areas: Vec<Vec<u32>>, // [[x, y], [x, y], ...]
     pub dimensions: Vec<u32>,           // [width, height]
 }
 
-fn setup_level(mut commands: Commands, asset_server: Res<AssetServer>) {
-    let level_data_result = std::fs::read_to_string("assets/levels/level_1.json")
-        .map_err(|e| format!("Error reading level file: {}", e))
-        .and_then(|json_str| {
-            serde_json::from_str::<LevelData>(&json_str)
-                .map_err(|e| format!("Error parsing JSON: {}", e))
-        });
-
-    let map = if let Ok(level_data) = level_data_result {
-        Map {
-            grid_size: Vec2::new(CELL_SIZE, CELL_SIZE),
-            dimensions: UVec2::new(level_data.dimensions[0], level_data.dimensions[1]),
-            path_tiles: level_data
-                .path
-                .iter()
-                .map(|coords| UVec2::new(coords[0], coords[1]))
-                .collect(),
-            buildable_tiles: level_data
-                .buildable_areas
-                .iter()
-                .map(|coords| UVec2::new(coords[0], coords[1]))
-                .collect(),
-            start: UVec2::new(level_data.start[0], level_data.start[1]),
-            end: UVec2::new(level_data.end[0], level_data.end[1]),
-        }
-    } else {
-        error!("Failed to load level data: {:?}", level_data_result.err());
-        create_map()
-    };
-
-    let waves = create_waves();
-
-    let mut enemies_to_spawn = Vec::new();
-    let total_enemies = enemies_to_spawn.len();
-
-    commands.insert_resource(Level {
-        current_level: 1,
-        waves,
-        current_wave_index: 0,
-        wave_in_progress: false,
-        spawn_timer: Timer::from_seconds(10000.0, TimerMode::Once),
-        enemies_to_spawn,
-        enemies_spawned: 0,
-        enemies_remaining: total_enemies,
-    });
-
-    spawn_map_visuals(&mut commands, &asset_server, &map);
-    commands.insert_resource(map);
-}
+// fn setup_level(mut commands: Commands, asset_server: Res<AssetServer>) {
+//     let level_data_result = std::fs::read_to_string("assets/levels/level_1.json")
+//         .map_err(|e| format!("Error reading level file: {}", e))
+//         .and_then(|json_str| {
+//             serde_json::from_str::<LevelData>(&json_str)
+//                 .map_err(|e| format!("Error parsing JSON: {}", e))
+//         });
+//
+//     let map = if let Ok(level_data) = level_data_result {
+//         Map {
+//             grid_size: Vec2::new(CELL_SIZE, CELL_SIZE),
+//             dimensions: UVec2::new(level_data.dimensions[0], level_data.dimensions[1]),
+//             path_tiles: level_data
+//                 .path
+//                 .iter()
+//                 .map(|coords| UVec2::new(coords[0], coords[1]))
+//                 .collect(),
+//             buildable_tiles: level_data
+//                 .buildable_areas
+//                 .iter()
+//                 .map(|coords| UVec2::new(coords[0], coords[1]))
+//                 .collect(),
+//             start: UVec2::new(level_data.start[0], level_data.start[1]),
+//             end: UVec2::new(level_data.end[0], level_data.end[1]),
+//         }
+//     } else {
+//         error!("Failed to load level data: {:?}", level_data_result.err());
+//         create_map()
+//     };
+//
+//     let waves = create_waves();
+//
+//     let mut enemies_to_spawn = Vec::new();
+//     let total_enemies = enemies_to_spawn.len();
+//
+//     commands.insert_resource(Level {
+//         current_level: 1,
+//         waves,
+//         current_wave_index: 0,
+//         wave_in_progress: false,
+//         spawn_timer: Timer::from_seconds(10000.0, TimerMode::Once),
+//         enemies_to_spawn,
+//         enemies_spawned: 0,
+//         enemies_remaining: total_enemies,
+//     });
+//
+//     spawn_map_visuals(&mut commands, &asset_server, &map);
+//     commands.insert_resource(map);
+// }
 
 fn create_map() -> Map {
     let mut path_tiles = Vec::new();
@@ -197,7 +199,13 @@ fn create_waves() -> Vec<Wave> {
     ]
 }
 
-fn spawn_map_visuals(commands: &mut Commands, asset_server: &Res<AssetServer>, map: &Map) {
+// New function to spawn map visuals with textures
+fn spawn_map_visuals_with_textures(
+    commands: &mut Commands, 
+    asset_server: &Res<AssetServer>, 
+    map: &Map,
+    level_data: Option<LevelData>
+) {
     // Spawn background for the entire map
     for y in 0..map.dimensions.y {
         for x in 0..map.dimensions.x {
@@ -206,6 +214,7 @@ fn spawn_map_visuals(commands: &mut Commands, asset_server: &Res<AssetServer>, m
             commands.spawn((
                 Sprite {
                     image: asset_server.load("textures/grass.png"),
+                    custom_size: Some(Vec2::new(CELL_SIZE, CELL_SIZE)),
                     ..default()
                 },
                 Transform::from_translation(Vec3::new(world_pos.x, world_pos.y, 0.0)),
@@ -213,13 +222,35 @@ fn spawn_map_visuals(commands: &mut Commands, asset_server: &Res<AssetServer>, m
         }
     }
 
-    // Spawn path tiles
+    // Create a map of positions to textures
+    let texture_map: std::collections::HashMap<UVec2, String> = if let Some(data) = level_data {
+        data.path_textures
+            .iter()
+            .filter(|pt| pt.position.len() >= 2)
+            .map(|pt| {
+                (
+                    UVec2::new(pt.position[0], pt.position[1]),
+                    pt.texture.clone(),
+                )
+            })
+            .collect()
+    } else {
+        std::collections::HashMap::new()
+    };
+
+    // Spawn path tiles with appropriate textures
     for &pos in &map.path_tiles {
         let world_pos = map.grid_to_world(pos);
+        
+        // Get texture for this position or use default
+        let texture_path = texture_map
+            .get(&pos)
+            .cloned()
+            .unwrap_or_else(|| "textures/path01.png".to_string());
 
         commands.spawn((
             Sprite {
-                image: asset_server.load("textures/path01.png"),
+                image: asset_server.load(&texture_path),
                 custom_size: Some(Vec2::new(CELL_SIZE, CELL_SIZE)),
                 ..default()
             },
@@ -235,6 +266,7 @@ fn spawn_map_visuals(commands: &mut Commands, asset_server: &Res<AssetServer>, m
     commands.spawn((
         Sprite {
             image: asset_server.load("textures/start_portal.png"),
+            custom_size: Some(Vec2::new(CELL_SIZE, CELL_SIZE)),
             ..default()
         },
         Transform::from_translation(Vec3::new(start_pos.x, start_pos.y, 0.2)),
@@ -244,11 +276,122 @@ fn spawn_map_visuals(commands: &mut Commands, asset_server: &Res<AssetServer>, m
     commands.spawn((
         Sprite {
             image: asset_server.load("textures/end_portal.png"),
+            custom_size: Some(Vec2::new(CELL_SIZE, CELL_SIZE)),
             ..default()
         },
         Transform::from_translation(Vec3::new(end_pos.x, end_pos.y, 0.2)),
     ));
 }
+
+// Update the setup_level function in level.rs
+fn setup_level(mut commands: Commands, asset_server: Res<AssetServer>) {
+    let level_data_result = std::fs::read_to_string("assets/levels/level_1.json")
+        .map_err(|e| format!("Error reading level file: {}", e))
+        .and_then(|json_str| {
+            serde_json::from_str::<LevelData>(&json_str)
+                .map_err(|e| format!("Error parsing JSON: {}", e))
+        });
+
+    let map = if let Ok(level_data) = &level_data_result {
+        Map {
+            grid_size: Vec2::new(CELL_SIZE, CELL_SIZE),
+            dimensions: UVec2::new(level_data.dimensions[0], level_data.dimensions[1]),
+            path_tiles: level_data
+                .path
+                .iter()
+                .map(|coords| UVec2::new(coords[0], coords[1]))
+                .collect(),
+            buildable_tiles: level_data
+                .buildable_areas
+                .iter()
+                .map(|coords| UVec2::new(coords[0], coords[1]))
+                .collect(),
+            start: UVec2::new(level_data.start[0], level_data.start[1]),
+            end: UVec2::new(level_data.end[0], level_data.end[1]),
+        }
+    } else {
+        error!("Failed to load level data: {:?}", level_data_result.clone().err());
+        create_map()
+    };
+
+    let waves = create_waves();
+
+    let mut enemies_to_spawn = Vec::new();
+    let total_enemies = enemies_to_spawn.len();
+
+    commands.insert_resource(Level {
+        current_level: 1,
+        waves,
+        current_wave_index: 0,
+        wave_in_progress: false,
+        spawn_timer: Timer::from_seconds(10000.0, TimerMode::Once),
+        enemies_to_spawn,
+        enemies_spawned: 0,
+        enemies_remaining: total_enemies,
+    });
+
+    // Use the level data to spawn map visuals with correct textures
+    spawn_map_visuals_with_textures(
+        &mut commands, 
+        &asset_server, 
+        &map, 
+        level_data_result.ok()
+    );
+    
+    commands.insert_resource(map);
+}
+// fn spawn_map_visuals(commands: &mut Commands, asset_server: &Res<AssetServer>, map: &Map) {
+//     // Spawn background for the entire map
+//     for y in 0..map.dimensions.y {
+//         for x in 0..map.dimensions.x {
+//             let world_pos = map.grid_to_world(UVec2::new(x, y));
+//
+//             commands.spawn((
+//                 Sprite {
+//                     image: asset_server.load("textures/grass.png"),
+//                     ..default()
+//                 },
+//                 Transform::from_translation(Vec3::new(world_pos.x, world_pos.y, 0.0)),
+//             ));
+//         }
+//     }
+//
+//     // Spawn path tiles
+//     for &pos in &map.path_tiles {
+//         let world_pos = map.grid_to_world(pos);
+//
+//         commands.spawn((
+//             Sprite {
+//                 image: asset_server.load("textures/path01.png"),
+//                 custom_size: Some(Vec2::new(CELL_SIZE, CELL_SIZE)),
+//                 ..default()
+//             },
+//             Transform::from_translation(Vec3::new(world_pos.x, world_pos.y, 0.1)),
+//         ));
+//     }
+//
+//     // Add visual indicators for start and end points
+//     let start_pos = map.grid_to_world(map.start);
+//     let end_pos = map.grid_to_world(map.end);
+//
+//     // Start portal
+//     commands.spawn((
+//         Sprite {
+//             image: asset_server.load("textures/start_portal.png"),
+//             ..default()
+//         },
+//         Transform::from_translation(Vec3::new(start_pos.x, start_pos.y, 0.2)),
+//     ));
+//
+//     // End portal
+//     commands.spawn((
+//         Sprite {
+//             image: asset_server.load("textures/end_portal.png"),
+//             ..default()
+//         },
+//         Transform::from_translation(Vec3::new(end_pos.x, end_pos.y, 0.2)),
+//     ));
+// }
 
 fn spawn_wave_system(
     mut commands: Commands,

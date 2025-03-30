@@ -1,4 +1,7 @@
 use crate::game_state::GameState;
+use crate::level_textures::{
+    AvailableTextures, PathTexture, TextureSelectorPanel, get_selected_texture,
+};
 use crate::map::Map;
 use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
@@ -26,6 +29,10 @@ impl Plugin for EditorPlugin {
                     toggle_editor_tool,
                 )
                     .run_if(in_state(EditorState::Active)),
+            )
+            .add_systems(
+                OnEnter(EditorState::Active),
+                crate::level_textures::setup_texture_selector,
             );
     }
 }
@@ -48,6 +55,17 @@ pub enum EditorState {
     Active,
 }
 
+#[derive(Resource, Default)]
+pub struct EditorData {
+    pub path: Vec<(UVec2, String)>,
+    pub start: Option<UVec2>,
+    pub end: Option<UVec2>,
+    pub buildable_areas: Vec<UVec2>,
+    pub current_tool: EditorTool,
+    pub grid_overlay: bool,
+    pub selected_texture: String,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub enum EditorTool {
     #[default]
@@ -55,16 +73,7 @@ pub enum EditorTool {
     StartPoint,
     EndPoint,
     BuildableArea,
-}
-
-#[derive(Resource, Default)]
-pub struct EditorData {
-    pub path: Vec<UVec2>,
-    pub start: Option<UVec2>,
-    pub end: Option<UVec2>,
-    pub buildable_areas: Vec<UVec2>,
-    pub current_tool: EditorTool,
-    pub grid_overlay: bool,
+    TextureSelector,
 }
 
 #[derive(Component)]
@@ -75,7 +84,8 @@ pub struct EditorToolDisplay;
 
 #[derive(Serialize, Deserialize)]
 pub struct LevelData {
-    pub path: Vec<Vec<u32>>,            // Stored as [[x, y], [x, y], ...]
+    pub path: Vec<Vec<u32>>, // Stored as [[x, y], [x, y], ...]
+    pub path_textures: Vec<PathTexture>,
     pub start: Vec<u32>,                // [x, y]
     pub end: Vec<u32>,                  // [x, y]
     pub buildable_areas: Vec<Vec<u32>>, // [[x, y], [x, y], ...]
@@ -257,6 +267,9 @@ fn editor_input_handler(
     mut editor_data: ResMut<EditorData>,
     editor_text_input: ResMut<EditorTextInput>,
     map: Option<Res<Map>>,
+    asset_server: Res<AssetServer>,
+    textures: Res<AvailableTextures>,
+     markers_query: Query<(Entity, &Transform), With<EditorPathMarker>>,
 ) {
     if mouse_input.just_pressed(MouseButton::Left) {
         let (camera, camera_transform) = camera_q.single();
@@ -279,29 +292,70 @@ fn editor_input_handler(
                 let grid_size = Vec2::new(48.0, 48.0);
                 match editor_data.current_tool {
                     EditorTool::PathPlacer => {
-                        if !editor_data.path.contains(&grid_pos) {
-                            editor_data.path.push(grid_pos);
+                        // Check if grid position already exists
+                        let path_index = editor_data
+                            .path
+                            .iter()
+                            .position(|(pos, _)| *pos == grid_pos);
 
-                            let world_pos = if let Some(map) = map.as_ref() {
-                                map.grid_to_world(grid_pos)
-                            } else {
-                                let grid_size = Vec2::new(48.0, 48.0);
-                                Vec2::new(
-                                    grid_pos.x as f32 * grid_size.x + grid_size.x * 0.5,
-                                    grid_pos.y as f32 * grid_size.y + grid_size.y * 0.5,
-                                )
-                            };
+                        // Get the current texture from AvailableTextures
+                        let texture_path = get_selected_texture(&textures);
 
-                            commands.spawn((
-                                Sprite {
-                                    color: Color::srgba(0.8, 0.3, 0.3, 0.7),
-                                    custom_size: Some(Vec2::new(48.0, 48.0)),
-                                    ..default()
-                                },
-                                Transform::from_translation(world_pos.extend(1.0)),
-                                EditorPathMarker,
-                            ));
+                        if let Some(idx) = path_index {
+                            // Update texture for existing path position
+                            editor_data.path[idx].1 = texture_path.clone();
+
+                            // Find and despawn the old marker
+                            for (entity, transform) in markers_query.iter() {
+                                let pos =
+                                    Vec2::new(transform.translation.x, transform.translation.y);
+                                let world_pos = if let Some(map) = map.as_ref() {
+                                    map.grid_to_world(grid_pos)
+                                } else {
+                                    let grid_start_x =
+                                        -crate::config::WINDOW_WIDTH / 2.0 + grid_size.x / 2.0;
+                                    let grid_start_y =
+                                        crate::config::WINDOW_HEIGHT / 2.0 - grid_size.y / 2.0;
+
+                                    Vec2::new(
+                                        grid_start_x + grid_pos.x as f32 * grid_size.x,
+                                        grid_start_y - grid_pos.y as f32 * grid_size.y,
+                                    )
+                                };
+
+                                if pos.distance(world_pos) < 5.0 {
+                                    commands.entity(entity).despawn();
+                                }
+                            }
+                        } else {
+                            // Add new path position with texture
+                            editor_data.path.push((grid_pos, texture_path.clone()));
                         }
+
+                        // Spawn or update the visual marker
+                        let world_pos = if let Some(map) = map.as_ref() {
+                            map.grid_to_world(grid_pos)
+                        } else {
+                            let grid_start_x =
+                                -crate::config::WINDOW_WIDTH / 2.0 + grid_size.x / 2.0;
+                            let grid_start_y =
+                                crate::config::WINDOW_HEIGHT / 2.0 - grid_size.y / 2.0;
+
+                            Vec2::new(
+                                grid_start_x + grid_pos.x as f32 * grid_size.x,
+                                grid_start_y - grid_pos.y as f32 * grid_size.y,
+                            )
+                        };
+
+                        commands.spawn((
+                            Sprite {
+                                image: asset_server.load(&texture_path),
+                                custom_size: Some(Vec2::new(48.0, 48.0)),
+                                ..default()
+                            },
+                            Transform::from_translation(world_pos.extend(1.0)),
+                            EditorPathMarker,
+                        ));
                     }
                     EditorTool::StartPoint => {
                         editor_data.start = Some(grid_pos);
@@ -364,6 +418,11 @@ fn editor_input_handler(
                             ));
                         }
                     }
+                      EditorTool::TextureSelector => {
+                        // When in texture selector mode, clicking doesn't place anything
+                        // The texture panel should be visible and the user just selects a texture
+                        // No additional action needed here as texture selection is handled elsewhere
+                    },
                 }
             }
         }
@@ -405,8 +464,8 @@ fn render_editor_path(editor_data: Res<EditorData>, mut gizmos: Gizmos, map: Opt
     // Draw path lines
     if editor_data.path.len() >= 2 {
         for i in 0..editor_data.path.len() - 1 {
-            let start = editor_data.path[i];
-            let end = editor_data.path[i + 1];
+            let (start, _)  = editor_data.path[i];
+            let (end , _) = editor_data.path[i + 1];
 
             let start_world = Vec2::new(
                 grid_start_x + start.x as f32 * grid_size.x,
@@ -467,21 +526,21 @@ fn render_editor_path(editor_data: Res<EditorData>, mut gizmos: Gizmos, map: Opt
     }
 }
 
-  fn toggle_editor_tool(
-      buttons: Query<(&Interaction, &EditorButton), Changed<Interaction>>,
-      mut editor_data: ResMut<EditorData>,
-      mut text_query: Query<&mut Text, With<EditorToolDisplay>>,
-  ) {
-      for (interaction, button) in &buttons {
-          if let Interaction::Pressed = interaction {
-              editor_data.current_tool = button.0.clone();
+fn toggle_editor_tool(
+    buttons: Query<(&Interaction, &EditorButton), Changed<Interaction>>,
+    mut editor_data: ResMut<EditorData>,
+    mut text_query: Query<&mut Text, With<EditorToolDisplay>>,
+) {
+    for (interaction, button) in &buttons {
+        if let Interaction::Pressed = interaction {
+            editor_data.current_tool = button.0.clone();
 
-              if let Ok(mut text) = text_query.get_single_mut() {
-                  *text = Text::new(format!("Editor Mode: {:?}", editor_data.current_tool));
-              }
-          }
-      }
-  }
+            if let Ok(mut text) = text_query.get_single_mut() {
+                *text = Text::new(format!("Editor Mode: {:?}", editor_data.current_tool));
+            }
+        }
+    }
+}
 
 fn export_level_data(
     interaction_query: Query<&Interaction, (Changed<Interaction>, With<ExportButton>)>,
@@ -498,12 +557,21 @@ fn export_level_data(
 }
 
 fn export_level(editor_data: &EditorData, level_name: &str) {
+    let mut path = Vec::new();
+    let mut path_textures = Vec::new();
+    
+    for (pos, texture) in &editor_data.path {
+        path.push(vec![pos.x, pos.y]);
+        
+        path_textures.push(PathTexture {
+            position: vec![pos.x, pos.y],
+            texture: texture.clone(),
+        });
+    }
+    
     let level_data = LevelData {
-        path: editor_data
-            .path
-            .iter()
-            .map(|pos| vec![pos.x, pos.y])
-            .collect(),
+        path,
+        path_textures,  // Include texture information
         start: if let Some(start) = editor_data.start {
             vec![start.x, start.y]
         } else {
@@ -521,6 +589,30 @@ fn export_level(editor_data: &EditorData, level_name: &str) {
             .collect(),
         dimensions: vec![27, 15],
     };
+
+//     let level_data = LevelData {
+//         path: editor_data
+//             .path
+//             .iter()
+//             .map(|pos| vec![pos.x, pos.y])
+//             .collect(),
+//         start: if let Some(start) = editor_data.start {
+//             vec![start.x, start.y]
+//         } else {
+//             vec![0, 0]
+//         },
+//         end: if let Some(end) = editor_data.end {
+//             vec![end.x, end.y]
+//         } else {
+//             vec![0, 0]
+//         },
+//         buildable_areas: editor_data
+//             .buildable_areas
+//             .iter()
+//             .map(|pos| vec![pos.x, pos.y])
+//             .collect(),
+//         dimensions: vec![27, 15],
+//     };
 
     if let Ok(json_string) = serde_json::to_string_pretty(&level_data) {
         std::fs::create_dir_all("assets/levels").unwrap_or_else(|_| {
@@ -1034,6 +1126,7 @@ fn handle_context_menu_interaction(
     camera_q: Query<(&Camera, &GlobalTransform)>,
     map: Option<Res<Map>>,
     markers_query: Query<(Entity, &Transform), With<EditorPathMarker>>,
+    textures: Res<AvailableTextures>
 ) {
     for (interaction, option) in interaction_query.iter() {
         if matches!(interaction, Interaction::Pressed) {
@@ -1069,7 +1162,7 @@ fn handle_context_menu_interaction(
                             };
 
                             // Remove from appropriate lists
-                            editor_data.path.retain(|&pos| pos != grid_pos);
+                            editor_data.path.retain(|(pos, _)| *pos != grid_pos);
                             editor_data.buildable_areas.retain(|&pos| pos != grid_pos);
 
                             // Clear start/end if they match
