@@ -1,28 +1,14 @@
-mod enemy;
-mod game_state;
-mod level;
-mod map;
-mod overlay;
-mod projectile;
-mod render;
-mod tower;
-mod ui;
-mod utils;
-mod grid;
-mod config;
-// mod level_loader;
-mod level_editor;
-mod level_textures;
-mod main_menu;
-
 use bevy::prelude::*;
 
-use crate::config::WINDOW_HEIGHT;
-use crate::config::WINDOW_WIDTH;
+use towerdefense::{
+    core::{config::{WINDOW_HEIGHT, WINDOW_WIDTH}, game_state::GameStatePlugin},
+    entities::{enemy::EnemyPlugin, projectile::ProjectilePlugin, tower::TowerPlugin},
+    levels::{level::LevelPlugin, level_editor::EditorPlugin, level_textures::TexturesPlugin},
+    ui::{main_menu::MainMenuPlugin, render::RenderPlugin},
+};
 
 fn main() {
     App::new()
-        // .add_plugins(DefaultPlugins.set(ImagePlugin::default_nearest()))
         .add_plugins(DefaultPlugins.set(WindowPlugin {
             primary_window: Some(Window {
                 resolution: (WINDOW_WIDTH, WINDOW_HEIGHT).into(),
@@ -33,15 +19,15 @@ fn main() {
             ..default()
         }
         ).set(ImagePlugin::default_nearest()))
-        .add_plugins(game_state::GameStatePlugin)
-        .add_plugins(main_menu::MainMenuPlugin)
-        .add_plugins(render::RenderPlugin)
-        .add_plugins(level::LevelPlugin)
-        .add_plugins(tower::TowerPlugin)
-        .add_plugins(enemy::EnemyPlugin)
-        .add_plugins(projectile::ProjectilePlugin)
-        .add_plugins(level_editor::EditorPlugin)
-        .add_plugins(level_textures::TexturesPlugin)
+        .add_plugins(GameStatePlugin)
+        .add_plugins(MainMenuPlugin)
+        .add_plugins(RenderPlugin)
+        .add_plugins(LevelPlugin)
+        .add_plugins(TowerPlugin)
+        .add_plugins(EnemyPlugin)
+        .add_plugins(ProjectilePlugin)
+        .add_plugins(EditorPlugin)
+        .add_plugins(TexturesPlugin)
         // .add_plugins(grid::GridPlugin)
         // .add_plugins(ui::UiPlugin)
         // .add_plugins(overlay::OverlayPlugin)

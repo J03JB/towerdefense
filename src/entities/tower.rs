@@ -1,4 +1,4 @@
-use crate::map::Map;
+use crate::core::map::Map;
 use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
 
@@ -61,7 +61,7 @@ fn handle_tower_placement(
     camera_q: Query<(&Camera, &GlobalTransform)>,
     map: Res<Map>,
     asset_server: Res<AssetServer>,
-    player_resources: Option<ResMut<crate::game_state::PlayerResource>>,
+    player_resources: Option<ResMut<crate::core::game_state::PlayerResource>>,
 ) {
     if mouse_input.just_pressed(MouseButton::Left) {
         let (camera, camera_transform) = camera_q.single();

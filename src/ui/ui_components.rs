@@ -1,4 +1,3 @@
-// src/ui.rs
 use bevy::prelude::*;
 
 pub struct UiPlugin;

@@ -1,7 +1,7 @@
-use crate::config::{CELL_SIZE, GRID_HEIGHT, GRID_WIDTH};
-use crate::enemy::{EnemyType, spawn_enemy};
-use crate::level_textures::PathTexture;
-use crate::map::Map;
+use crate::core::config::{CELL_SIZE, GRID_HEIGHT, GRID_WIDTH};
+use crate::entities::enemy::{EnemyType, spawn_enemy};
+use crate::levels::level_textures::PathTexture;
+use crate::core::map::Map;
 use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
 

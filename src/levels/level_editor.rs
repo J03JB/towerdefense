@@ -1,8 +1,8 @@
-use crate::game_state::GameState;
-use crate::level_textures::{
+use crate::core::game_state::GameState;
+use crate::levels::level_textures::{
     AvailableTextures, PathTexture, TextureSelectorPanel, get_selected_texture,
 };
-use crate::map::Map;
+use crate::core::map::Map;
 use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
 use serde::{Deserialize, Serialize};
@@ -32,7 +32,7 @@ impl Plugin for EditorPlugin {
             )
             .add_systems(
                 OnEnter(EditorState::Active),
-                crate::level_textures::setup_texture_selector,
+                crate::levels::level_textures::setup_texture_selector,
             );
     }
 }
@@ -313,9 +313,9 @@ fn editor_input_handler(
                                     map.grid_to_world(grid_pos)
                                 } else {
                                     let grid_start_x =
-                                        -crate::config::WINDOW_WIDTH / 2.0 + grid_size.x / 2.0;
+                                        -crate::core::config::WINDOW_WIDTH / 2.0 + grid_size.x / 2.0;
                                     let grid_start_y =
-                                        crate::config::WINDOW_HEIGHT / 2.0 - grid_size.y / 2.0;
+                                        crate::core::config::WINDOW_HEIGHT / 2.0 - grid_size.y / 2.0;
 
                                     Vec2::new(
                                         grid_start_x + grid_pos.x as f32 * grid_size.x,
@@ -337,9 +337,9 @@ fn editor_input_handler(
                             map.grid_to_world(grid_pos)
                         } else {
                             let grid_start_x =
-                                -crate::config::WINDOW_WIDTH / 2.0 + grid_size.x / 2.0;
+                                -crate::core::config::WINDOW_WIDTH / 2.0 + grid_size.x / 2.0;
                             let grid_start_y =
-                                crate::config::WINDOW_HEIGHT / 2.0 - grid_size.y / 2.0;
+                                crate::core::config::WINDOW_HEIGHT / 2.0 - grid_size.y / 2.0;
 
                             Vec2::new(
                                 grid_start_x + grid_pos.x as f32 * grid_size.x,
@@ -458,8 +458,8 @@ fn render_editor_path(editor_data: Res<EditorData>, mut gizmos: Gizmos, map: Opt
         Vec2::new(48.0, 48.0)
     };
 
-    let grid_start_x = -crate::config::WINDOW_WIDTH / 2.0 + grid_size.x / 2.0;
-    let grid_start_y = crate::config::WINDOW_HEIGHT / 2.0 - grid_size.y / 2.0;
+    let grid_start_x = -crate::core::config::WINDOW_WIDTH / 2.0 + grid_size.x / 2.0;
+    let grid_start_y = crate::core::config::WINDOW_HEIGHT / 2.0 - grid_size.y / 2.0;
 
     // Draw path lines
     if editor_data.path.len() >= 2 {

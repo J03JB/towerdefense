@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use crate::level_editor::{EditorData, EditorTool};
+use crate::levels::level_editor::{EditorData, EditorTool};
 use serde::{Deserialize, Serialize};
 
 pub struct TexturesPlugin;

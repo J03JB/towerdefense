@@ -1,5 +1,3 @@
-
-// src/projectile.rs
 use bevy::prelude::*;
 
 pub struct ProjectilePlugin;

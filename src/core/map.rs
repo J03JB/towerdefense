@@ -1,6 +1,7 @@
 use bevy::prelude::{Component, UVec2, Resource, Vec2, Vec3};
 
-use crate::config::{CELL_SIZE, GRID_HEIGHT, GRID_WIDTH, WINDOW_HEIGHT, WINDOW_WIDTH};
+use crate::core::config::{CELL_SIZE, GRID_HEIGHT, GRID_WIDTH, WINDOW_HEIGHT, WINDOW_WIDTH};
+
 
 #[derive(Component)]
 pub struct GridCell {

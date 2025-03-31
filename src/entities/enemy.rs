@@ -1,7 +1,6 @@
-// src/enemy.rs - Enhanced with path following
 use bevy::prelude::*;
-use crate::map::Map;
-use crate::utils::distance;
+use crate::core::map::Map;
+use crate::core::utils::distance;
 
 pub struct EnemyPlugin;
 
@@ -144,7 +143,7 @@ fn move_enemies_along_path(
 fn check_enemy_health(
     mut commands: Commands,
     mut enemies: Query<(Entity, &Enemy)>,
-    mut game_resources: Option<ResMut<crate::game_state::PlayerResource>>,
+    mut game_resources: Option<ResMut<crate::core::game_state::PlayerResource>>,
 ) {
     for (entity, enemy) in enemies.iter() {
         // Check if enemy is dead
@@ -169,7 +168,7 @@ pub fn handle_enemies_at_end(
     mut commands: Commands,
     map: Res<Map>,
     enemies: Query<(Entity, &Transform, &Enemy)>,
-    mut game_resources: Option<ResMut<crate::game_state::PlayerResource>>,
+    mut game_resources: Option<ResMut<crate::core::game_state::PlayerResource>>,
 ) {
     let end_pos = map.grid_to_world(map.end);
     

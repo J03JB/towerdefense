@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use crate::game_state::GameState;
+use crate::core::game_state::GameState;
 
 pub struct MainMenuPlugin;
 
@@ -104,7 +104,6 @@ fn setup_pause_menu(mut commands: Commands) {
                 },
             ));
 
-            // Buttons
             parent
                 .spawn(Node {
                     flex_direction: FlexDirection::Column,
@@ -123,7 +122,7 @@ fn setup_pause_menu(mut commands: Commands) {
 
 fn setup_game_over(
     mut commands: Commands,
-    player_resource: Res<crate::game_state::PlayerResource>,
+    player_resource: Res<crate::core::game_state::PlayerResource>,
 ) {
     commands
         .spawn((
