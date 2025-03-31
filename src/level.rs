@@ -124,7 +124,7 @@ fn create_map() -> Map {
         for x_pos in 0..40 {
             let pos = UVec2::new(x_pos, y_pos);
             // Skip path tiles and 1-tile buffer around path
-            if !is_near_path(&path_tiles, pos, 1) {
+            if !is_near_path(&path_tiles, pos, 0) {
                 buildable_tiles.push(pos);
             }
         }
