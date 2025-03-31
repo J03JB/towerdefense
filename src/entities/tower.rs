@@ -1,4 +1,4 @@
-use crate::core::map::Map;
+use crate::core::{map::Map, game_state::GameState};
 use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
 
@@ -13,7 +13,8 @@ impl Plugin for TowerPlugin {
                 tower_shooting,
                 handle_tower_upgrades,
                 handle_tower_placement,
-            ),
+            )
+                .run_if(in_state(GameState::Playing)),
         );
     }
 }

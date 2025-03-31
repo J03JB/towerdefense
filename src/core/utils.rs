@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+use crate::core::map::Map;
 
 pub fn distance(a: Vec2, b: Vec2) -> f32 {
     a.distance(b)
@@ -12,6 +13,23 @@ pub fn find_path(start: Vec2, end: Vec2, obstacles: &[Vec2]) -> Vec<Vec2> {
     // Simple pathfinding implementation
     // In a real game, you'd use A* or another algorithm
     vec![start, end]
+}
+
+pub fn get_grid_position(
+    window: &Window,
+    camera: &Camera,
+    camera_transform: &GlobalTransform,
+    map: &Map,
+) -> Option<UVec2> {
+    window.cursor_position()
+        .and_then(|cursor_position| {
+            camera.viewport_to_world_2d(camera_transform, cursor_position).ok()
+        })
+        .map(|world_position| {
+            let grid_x = ((world_position.x + crate::core::config::WINDOW_WIDTH / 2.0) / map.grid_size.x).floor() as u32;
+            let grid_y = ((crate::core::config::WINDOW_HEIGHT / 2.0 - world_position.y) / map.grid_size.y).floor() as u32;
+            UVec2::new(grid_x, grid_y)
+        })
 }
 
 pub fn key_to_char(key: KeyCode) -> Option<char> {
