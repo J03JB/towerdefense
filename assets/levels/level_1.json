@@ -1,0 +1,77 @@
+{
+  "path": [
+    [
+      0,
+      10
+    ],
+    [
+      15,
+      10
+    ],
+    [
+      15,
+      5
+    ],
+    [
+      26,
+      5
+    ],
+  ]
+  "path_textures": [
+    {
+      "position": [
+        0,
+        10
+      ],
+      "texture": "textures/path01.png"
+    },
+    {
+      "position": [
+        7,
+        0
+      ],
+      "texture": "textures/path01.png"
+    },
+    {
+      "position": [
+        15,
+        10
+      ],
+      "texture": "textures/path01.png"
+    },
+    {
+      "position": [
+        15,
+        5
+      ],
+      "texture": "textures/path01.png"
+    },
+    {
+      "position": [
+        26,
+        5
+      ],
+      "texture": "textures/path01.png"
+    },
+    {
+      "position": [
+        18,
+        0
+      ],
+      "texture": "textures/path01.png"
+    }
+  ],
+  "start": [
+    0,
+    0
+  ],
+  "end": [
+    0,
+    0
+  ],
+  "buildable_areas": [],
+  "dimensions": [
+    27,
+    15
+  ]
+}

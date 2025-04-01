@@ -1,7 +1,8 @@
 use crate::core::config::{CELL_SIZE, GRID_HEIGHT, GRID_WIDTH};
-use crate::entities::enemy::{EnemyType, spawn_enemy};
-use crate::levels::level_textures::PathTexture;
 use crate::core::map::Map;
+use crate::entities::enemy::{EnemyType, spawn_enemy};
+use crate::entities::pathfinding::{FlowDirection, FlowField};
+use crate::levels::level_textures::PathTexture;
 use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
 
@@ -41,7 +42,7 @@ pub struct WaveCompleteEvent {
 
 #[derive(Resource, Clone, Deserialize)]
 pub struct LevelData {
-    pub path: Vec<Vec<u32>>,            // Stored as [[x, y], [x, y], ...]
+    pub path: Vec<Vec<u32>>, // Stored as [[x, y], [x, y], ...]
     pub path_textures: Vec<PathTexture>,
     pub start: Vec<u32>,                // [x, y]
     pub end: Vec<u32>,                  // [x, y]
@@ -201,10 +202,10 @@ fn create_waves() -> Vec<Wave> {
 
 // New function to spawn map visuals with textures
 fn spawn_map_visuals_with_textures(
-    commands: &mut Commands, 
-    asset_server: &Res<AssetServer>, 
+    commands: &mut Commands,
+    asset_server: &Res<AssetServer>,
     map: &Map,
-    level_data: Option<LevelData>
+    level_data: Option<LevelData>,
 ) {
     // Spawn background for the entire map
     for y in 0..map.dimensions.y {
@@ -241,7 +242,7 @@ fn spawn_map_visuals_with_textures(
     // Spawn path tiles with appropriate textures
     for &pos in &map.path_tiles {
         let world_pos = map.grid_to_world(pos);
-        
+
         // Get texture for this position or use default
         let texture_path = texture_map
             .get(&pos)
@@ -310,7 +311,10 @@ fn setup_level(mut commands: Commands, asset_server: Res<AssetServer>) {
             end: UVec2::new(level_data.end[0], level_data.end[1]),
         }
     } else {
-        error!("Failed to load level data: {:?}", level_data_result.clone().err());
+        error!(
+            "Failed to load level data: {:?}",
+            level_data_result.clone().err()
+        );
         create_map()
     };
 
@@ -319,6 +323,22 @@ fn setup_level(mut commands: Commands, asset_server: Res<AssetServer>) {
     let mut enemies_to_spawn = Vec::new();
     let total_enemies = enemies_to_spawn.len();
 
+    // Initialize flow field
+    let map_width = map.dimensions.x as usize;
+    let map_height = map.dimensions.y as usize;
+    
+    // Clamp end position to valid grid bounds
+    let goal_x = map.end.x.min(map_width as u32 - 1);
+    let goal_y = map.end.y.min(map_height as u32 - 1);
+    let goal_pos = UVec2::new(goal_x, goal_y);
+    
+    // Create flow field, compute it, and insert it as a resource
+    let mut flow_field = FlowField::new(map_width, map_height);
+    flow_field.compute(&map, goal_pos);
+    // commands.insert_resource(flow_field.clone());
+
+    // Add the flow field as a resource
+    commands.insert_resource(flow_field);
     commands.insert_resource(Level {
         current_level: 1,
         waves,
@@ -331,13 +351,8 @@ fn setup_level(mut commands: Commands, asset_server: Res<AssetServer>) {
     });
 
     // Use the level data to spawn map visuals with correct textures
-    spawn_map_visuals_with_textures(
-        &mut commands, 
-        &asset_server, 
-        &map, 
-        level_data_result.ok()
-    );
-    
+    spawn_map_visuals_with_textures(&mut commands, &asset_server, &map, level_data_result.ok());
+
     commands.insert_resource(map);
 }
 // fn spawn_map_visuals(commands: &mut Commands, asset_server: &Res<AssetServer>, map: &Map) {
@@ -400,6 +415,11 @@ fn spawn_wave_system(
     map: Res<Map>,
     mut level: ResMut<Level>,
 ) {
+    if !level.wave_in_progress {
+            level.wave_in_progress = true;
+            info!("Wave {} started!", level.current_wave_index + 1);
+
+    }
     // If no wave is in progress but we have more waves, start a wave after delay
     if !level.wave_in_progress && level.current_wave_index < level.waves.len() {
         // Check if it's time to start the wave
@@ -439,65 +459,65 @@ fn spawn_wave_system(
     }
 }
 
-// fn check_wave_progress(
-//     mut level: ResMut<Level>,
-//     enemies: Query<&crate::enemy::Enemy>,
-//     mut wave_complete_events: EventWriter<WaveCompleteEvent>,
-//     game_state: Option<Res<crate::game_state::GameState>>,
-// ) {
-//     // Skip if game isn't in Playing state
-//     if let Some(state) = game_state {
-//         if *state != crate::game_state::GameState::Playing {
-//             return;
-//         }
-//     }
-//
-//     // If wave is in progress and all enemies are spawned
-//     if level.wave_in_progress && level.enemies_spawned >= level.enemies_to_spawn.len() {
-//         // Count remaining enemies
-//         let remaining = enemies.iter().count();
-//         level.enemies_remaining = remaining;
-//
-//         // If no enemies remain, wave is complete
-//         if remaining == 0 {
-//             info!("Wave {} completed!", level.current_wave_index + 1);
-//
-//             // Send wave complete event
-//             wave_complete_events.send(WaveCompleteEvent {
-//                 wave_index: level.current_wave_index,
-//             });
-//
-//             // Set up for next wave
-//             level.current_wave_index += 1;
-//             level.wave_in_progress = false;
-//
-//             // If there are more waves, prepare the next one
-//             if level.current_wave_index < level.waves.len() {
-//                 let next_wave = &level.waves[level.current_wave_index];
-//
-//                 // Prepare enemies for next wave
-//                 let mut enemies_to_spawn = Vec::new();
-//                 for (enemy_type, count) in &next_wave.enemy_types {
-//                     for _ in 0..*count {
-//                         enemies_to_spawn.push(*enemy_type);
-//                     }
-//                 }
-//
-//                 // Set up timer for wave delay
-//                 level.spawn_timer = Timer::from_seconds(next_wave.wave_delay, TimerMode::Once);
-//                 level.enemies_to_spawn = enemies_to_spawn;
-//                 level.enemies_spawned = 0;
-//                 level.enemies_remaining = enemies_to_spawn.len();
-//
-//                 info!("Next wave starting in {} seconds", next_wave.wave_delay);
-//             } else {
-//                 // All waves completed
-//                 info!("All waves completed! Level finished!");
-//                 // You could trigger a level complete event here
-//             }
-//         }
-//     }
-// }
+fn check_wave_progress(
+    mut level: ResMut<Level>,
+    enemies: Query<&crate::entities::enemy::Enemy>,
+    mut wave_complete_events: EventWriter<WaveCompleteEvent>,
+    game_state: Option<State<crate::core::game_state::GameState>>,
+) {
+    // Skip if game isn't in Playing state
+    if let Some(state) = game_state {
+        if *state != crate::core::game_state::GameState::Playing {
+            return;
+        }
+    }
+
+    // If wave is in progress and all enemies are spawned
+    if level.wave_in_progress && level.enemies_spawned >= level.enemies_to_spawn.len() {
+        // Count remaining enemies
+        let remaining = enemies.iter().count();
+        level.enemies_remaining = remaining;
+
+        // If no enemies remain, wave is complete
+        if remaining == 0 {
+            info!("Wave {} completed!", level.current_wave_index + 1);
+
+            // Send wave complete event
+            wave_complete_events.send(WaveCompleteEvent {
+                wave_index: level.current_wave_index,
+            });
+
+            // Set up for next wave
+            level.current_wave_index += 1;
+            level.wave_in_progress = false;
+
+            // If there are more waves, prepare the next one
+            if level.current_wave_index < level.waves.len() {
+                let next_wave = &level.waves[level.current_wave_index];
+
+                // Prepare enemies for next wave
+                let mut enemies_to_spawn = Vec::new();
+                for (enemy_type, count) in &next_wave.enemy_types {
+                    for _ in 0..*count {
+                        enemies_to_spawn.push(*enemy_type);
+                    }
+                }
+
+                // Set up timer for wave delay
+                // level.spawn_timer = Timer::from_seconds(next_wave.wave_delay, TimerMode::Once);
+                // level.enemies_to_spawn = enemies_to_spawn;
+                // level.enemies_spawned = 0;
+                // level.enemies_remaining = enemies_to_spawn.len();
+
+                info!("Next wave starting in {} seconds", next_wave.wave_delay);
+            } else {
+                // All waves completed
+                info!("All waves completed! Level finished!");
+                // You could trigger a level complete event here
+            }
+        }
+    }
+}
 //
 // use crate::enemy::EnemyType;
 // use serde::{Deserialize, Serialize};

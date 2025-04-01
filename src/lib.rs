@@ -9,6 +9,7 @@ pub mod entities {
     pub mod enemy;
     pub mod projectile;
     pub mod tower;
+    pub mod pathfinding;
 }
 
 pub mod ui {
