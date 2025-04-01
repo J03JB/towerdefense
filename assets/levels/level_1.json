@@ -10,11 +10,11 @@
     ],
     [
       15,
-      5
+      6
     ],
     [
-      26,
-      5
+      27,
+      6
     ],
   ]
   "path_textures": [
@@ -42,14 +42,14 @@
     {
       "position": [
         15,
-        5
+        6
       ],
       "texture": "textures/path01.png"
     },
     {
       "position": [
-        26,
-        5
+        27,
+        6
       ],
       "texture": "textures/path01.png"
     },
@@ -63,11 +63,11 @@
   ],
   "start": [
     0,
-    0
+    10
   ],
   "end": [
-    0,
-    0
+    27,
+    6
   ],
   "buildable_areas": [],
   "dimensions": [

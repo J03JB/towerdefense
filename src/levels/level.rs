@@ -100,6 +100,51 @@ pub struct LevelData {
 //     commands.insert_resource(map);
 // }
 
+// fn create_map() -> Map {
+//     let mut path_tiles = Vec::new();
+//
+//     // Define a simple horizontal path from left to right
+//     let mut x = 0;
+//     let y = 10;
+//
+//     // Add the start position to path_tiles
+//     let start_pos = UVec2::new(x, y);
+//     path_tiles.push(start_pos);
+//
+//     // Create a path from left to right
+//     while x < 26 {
+//         x += 1;
+//         path_tiles.push(UVec2::new(x, y));
+//     }
+//
+//     // Define the end position (make sure it's included in path_tiles)
+//     let end_pos = UVec2::new(x, y);
+//
+//     // Create buildable tiles (all tiles except path and borders)
+//     let mut buildable_tiles = Vec::new();
+//     for y_pos in 0..15 {
+//         for x_pos in 0..27 {
+//             let pos = UVec2::new(x_pos, y_pos);
+//             // Skip path tiles
+//             if !path_tiles.contains(&pos) {
+//                 buildable_tiles.push(pos);
+//             }
+//         }
+//     }
+//
+//     info!("Created map with path from ({},{}) to ({},{})", 
+//         start_pos.x, start_pos.y, end_pos.x, end_pos.y);
+//     info!("Path has {} tiles", path_tiles.len());
+//
+//     Map {
+//         grid_size: Vec2::new(CELL_SIZE, CELL_SIZE),
+//         dimensions: UVec2::new(GRID_WIDTH as u32, GRID_HEIGHT as u32),
+//         path_tiles,
+//         buildable_tiles,
+//         start: start_pos,
+//         end: end_pos,
+//     }
+// }
 fn create_map() -> Map {
     let mut path_tiles = Vec::new();
     let mut x = 0;
@@ -110,7 +155,7 @@ fn create_map() -> Map {
         path_tiles.push(UVec2::new(x, y));
     }
     // Up to (15, 5)
-    while y > 5 {
+    while y > 6 {
         y -= 1;
         path_tiles.push(UVec2::new(x, y));
     }
@@ -137,7 +182,7 @@ fn create_map() -> Map {
         path_tiles,
         buildable_tiles,
         start: UVec2::new(0, 10), // Start at the beginning of the path
-        end: UVec2::new(39, 15),  // End at the end of the path
+        end: UVec2::new(26, 6),  // End at the end of the path
     }
 }
 
@@ -311,17 +356,9 @@ fn setup_level(mut commands: Commands, asset_server: Res<AssetServer>) {
             end: UVec2::new(level_data.end[0], level_data.end[1]),
         }
     } else {
-        error!(
-            "Failed to load level data: {:?}",
-            level_data_result.clone().err()
-        );
+        info!("Failed to load level data, using fallback map");
         create_map()
     };
-
-    let waves = create_waves();
-
-    let mut enemies_to_spawn = Vec::new();
-    let total_enemies = enemies_to_spawn.len();
 
     // Initialize flow field
     let map_width = map.dimensions.x as usize;
@@ -335,26 +372,90 @@ fn setup_level(mut commands: Commands, asset_server: Res<AssetServer>) {
     // Create flow field, compute it, and insert it as a resource
     let mut flow_field = FlowField::new(map_width, map_height);
     flow_field.compute(&map, goal_pos);
-    // commands.insert_resource(flow_field.clone());
+    
+    info!("Flow field initialized with goal at: {:?}", goal_pos);
+    info!("Start position is: {:?}", map.start);
+    info!("Map has {} path tiles", map.path_tiles.len());
 
     // Add the flow field as a resource
     commands.insert_resource(flow_field);
-    commands.insert_resource(Level {
-        current_level: 1,
-        waves,
-        current_wave_index: 0,
-        wave_in_progress: false,
-        spawn_timer: Timer::from_seconds(10000.0, TimerMode::Once),
-        enemies_to_spawn,
-        enemies_spawned: 0,
-        enemies_remaining: total_enemies,
-    });
 
     // Use the level data to spawn map visuals with correct textures
     spawn_map_visuals_with_textures(&mut commands, &asset_server, &map, level_data_result.ok());
 
     commands.insert_resource(map);
 }
+
+// fn setup_level(mut commands: Commands, asset_server: Res<AssetServer>) {
+//     let level_data_result = std::fs::read_to_string("assets/levels/level_1.json")
+//         .map_err(|e| format!("Error reading level file: {}", e))
+//         .and_then(|json_str| {
+//             serde_json::from_str::<LevelData>(&json_str)
+//                 .map_err(|e| format!("Error parsing JSON: {}", e))
+//         });
+//
+//     let map = if let Ok(level_data) = &level_data_result {
+//         Map {
+//             grid_size: Vec2::new(CELL_SIZE, CELL_SIZE),
+//             dimensions: UVec2::new(level_data.dimensions[0], level_data.dimensions[1]),
+//             path_tiles: level_data
+//                 .path
+//                 .iter()
+//                 .map(|coords| UVec2::new(coords[0], coords[1]))
+//                 .collect(),
+//             buildable_tiles: level_data
+//                 .buildable_areas
+//                 .iter()
+//                 .map(|coords| UVec2::new(coords[0], coords[1]))
+//                 .collect(),
+//             start: UVec2::new(level_data.start[0], level_data.start[1]),
+//             end: UVec2::new(level_data.end[0], level_data.end[1]),
+//         }
+//     } else {
+//         error!(
+//             "Failed to load level data: {:?}",
+//             level_data_result.clone().err()
+//         );
+//         create_map()
+//     };
+//
+//     let waves = create_waves();
+//
+//     let mut enemies_to_spawn = Vec::new();
+//     let total_enemies = enemies_to_spawn.len();
+//
+//     // Initialize flow field
+//     let map_width = map.dimensions.x as usize;
+//     let map_height = map.dimensions.y as usize;
+//
+//     // Clamp end position to valid grid bounds
+//     let goal_x = map.end.x.min(map_width as u32 - 1);
+//     let goal_y = map.end.y.min(map_height as u32 - 1);
+//     let goal_pos = UVec2::new(goal_x, goal_y);
+//
+//     // Create flow field, compute it, and insert it as a resource
+//     let mut flow_field = FlowField::new(map_width, map_height);
+//     flow_field.compute(&map, goal_pos);
+//     // commands.insert_resource(flow_field.clone());
+//
+//     // Add the flow field as a resource
+//     commands.insert_resource(flow_field);
+//     commands.insert_resource(Level {
+//         current_level: 1,
+//         waves,
+//         current_wave_index: 0,
+//         wave_in_progress: false,
+//         spawn_timer: Timer::from_seconds(10000.0, TimerMode::Once),
+//         enemies_to_spawn,
+//         enemies_spawned: 0,
+//         enemies_remaining: total_enemies,
+//     });
+//
+//     // Use the level data to spawn map visuals with correct textures
+//     spawn_map_visuals_with_textures(&mut commands, &asset_server, &map, level_data_result.ok());
+//
+//     commands.insert_resource(map);
+// }
 // fn spawn_map_visuals(commands: &mut Commands, asset_server: &Res<AssetServer>, map: &Map) {
 //     // Spawn background for the entire map
 //     for y in 0..map.dimensions.y {
@@ -407,57 +508,91 @@ fn setup_level(mut commands: Commands, asset_server: Res<AssetServer>) {
 //         Transform::from_translation(Vec3::new(end_pos.x, end_pos.y, 0.2)),
 //     ));
 // }
-
 fn spawn_wave_system(
     mut commands: Commands,
-    time: Res<Time>,
     asset_server: Res<AssetServer>,
     map: Res<Map>,
-    mut level: ResMut<Level>,
+    flow_field: Option<Res<FlowField>>,
+    time: Res<Time>,
+    enemies: Query<&crate::entities::enemy::Enemy>,
 ) {
-    if !level.wave_in_progress {
-            level.wave_in_progress = true;
-            info!("Wave {} started!", level.current_wave_index + 1);
-
-    }
-    // If no wave is in progress but we have more waves, start a wave after delay
-    if !level.wave_in_progress && level.current_wave_index < level.waves.len() {
-        // Check if it's time to start the wave
-        level.spawn_timer.tick(time.delta());
-
-        if level.spawn_timer.finished() {
-            // Start the wave
-            level.wave_in_progress = true;
-            level.spawn_timer = Timer::from_seconds(
-                level.waves[level.current_wave_index].spawn_interval,
-                TimerMode::Repeating,
-            );
-
-            // Print wave start message
-            info!("Wave {} started!", level.current_wave_index + 1);
-        }
-        return;
-    }
-
-    // If wave is in progress, spawn enemies
-    if level.wave_in_progress && level.enemies_spawned < level.enemies_to_spawn.len() {
-        level.spawn_timer.tick(time.delta());
-
-        if level.spawn_timer.just_finished() {
-            // Spawn the next enemy
-            let enemy_type = level.enemies_to_spawn[level.enemies_spawned];
-            spawn_enemy(&mut commands, &asset_server, &map, enemy_type);
-            level.enemies_spawned += 1;
-
-            // Debug info
-            debug!(
-                "Spawned enemy {}/{}",
-                level.enemies_spawned,
-                level.enemies_to_spawn.len()
-            );
-        }
+    // Only spawn an enemy if none exists and flow field is initialized
+    if enemies.is_empty() && flow_field.is_some() && flow_field.as_ref().unwrap().is_initialized {
+        // Get start position from the map
+        let start_pos = map.grid_to_world(map.start);
+        
+        // Spawn a basic enemy
+        commands.spawn((
+            Sprite {
+                image: asset_server.load("enemies/enemy.png"),
+                custom_size: Some(Vec2::new(32.0, 32.0)),
+                ..default()
+            },
+            Transform::from_translation(Vec3::new(start_pos.x, start_pos.y, 10.0)),
+            crate::entities::enemy::Enemy {
+                health: 100.0,
+                speed: 50.0,
+                reward: 10,
+                enemy_type: EnemyType::Basic,
+                path_index: 0,
+                path_progress: 0.0,
+            },
+        ));
+        
+        info!("Spawned a basic enemy at: {:?}", start_pos);
     }
 }
+
+// fn spawn_wave_system(
+//     mut commands: Commands,
+//     time: Res<Time>,
+//     asset_server: Res<AssetServer>,
+//     map: Res<Map>,
+//     mut level: ResMut<Level>,
+// ) {
+//     if !level.wave_in_progress {
+//             level.wave_in_progress = true;
+//             info!("Wave {} started!", level.current_wave_index + 1);
+//
+//     }
+//     // If no wave is in progress but we have more waves, start a wave after delay
+//     if !level.wave_in_progress && level.current_wave_index < level.waves.len() {
+//         // Check if it's time to start the wave
+//         level.spawn_timer.tick(time.delta());
+//
+//         if level.spawn_timer.finished() {
+//             // Start the wave
+//             level.wave_in_progress = true;
+//             level.spawn_timer = Timer::from_seconds(
+//                 level.waves[level.current_wave_index].spawn_interval,
+//                 TimerMode::Repeating,
+//             );
+//
+//             // Print wave start message
+//             info!("Wave {} started!", level.current_wave_index + 1);
+//         }
+//         return;
+//     }
+//
+//     // If wave is in progress, spawn enemies
+//     if level.wave_in_progress && level.enemies_spawned < level.enemies_to_spawn.len() {
+//         level.spawn_timer.tick(time.delta());
+//
+//         if level.spawn_timer.just_finished() {
+//             // Spawn the next enemy
+//             let enemy_type = level.enemies_to_spawn[level.enemies_spawned];
+//             spawn_enemy(&mut commands, &asset_server, &map, enemy_type);
+//             level.enemies_spawned += 1;
+//
+//             // Debug info
+//             debug!(
+//                 "Spawned enemy {}/{}",
+//                 level.enemies_spawned,
+//                 level.enemies_to_spawn.len()
+//             );
+//         }
+//     }
+// }
 
 fn check_wave_progress(
     mut level: ResMut<Level>,

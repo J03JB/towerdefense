@@ -8,7 +8,7 @@ pub struct EnemyPlugin;
 impl Plugin for EnemyPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Startup, setup_enemies)
-            .add_systems(Update, (move_enemies_along_path, check_enemy_health));
+            .add_systems(Update, (move_enemies_along_path, check_enemy_health, handle_enemies_at_end));
     }
 }
 
@@ -84,29 +84,52 @@ fn move_enemies_along_path(
 ) {
     let delta = time.delta_secs();
 
-    // If we don't have a flow field yet, fall back to old pathfinding or do nothing
+    // If we don't have a flow field yet, return
     let Some(flow_field) = flow_field.as_ref() else {
+        info!("No flow field available");
         return;
     };
 
     if !flow_field.is_initialized {
+        info!("Flow field not initialized yet");
         return;
     }
-    for (mut transform, enemy) in enemies.iter_mut() {
+
+    for (mut transform, mut enemy) in enemies.iter_mut() {
         // Get the current world position
         let current_pos = Vec2::new(transform.translation.x, transform.translation.y);
 
         // Convert to grid coordinates
         let grid_pos = map.world_to_grid(current_pos);
+        
+        // Debug info
+        // info!("Enemy at grid position: {:?}", grid_pos);
+
+        // Check if the position is on a valid path tile
+        if !map.path_tiles.contains(&grid_pos) {
+            info!("Enemy not on a path tile!");
+        }
 
         // Get flow direction at current grid position
-        let flow_vector = flow_field.get_flow_vector(grid_pos.x as usize, grid_pos.y as usize);
+        if grid_pos.x as usize >= flow_field.width || grid_pos.y as usize >= flow_field.height {
+            info!("Grid position out of flow field bounds!");
+            continue;
+        }
 
+        let direction = flow_field.get_direction(grid_pos.x as usize, grid_pos.y as usize);
+        // match direction {
+        //     Some(dir) => info!("Flow direction at {:?}: {:?}", grid_pos, dir),
+        //     None => info!("No flow direction at grid position: {:?}", grid_pos),
+        // }
+
+        let flow_vector = flow_field.get_flow_vector(grid_pos.x as usize, grid_pos.y as usize);
+        
         // If we have a valid flow direction, move along it
         if flow_vector != Vec2::ZERO {
             // Calculate movement
             let movement = flow_vector * enemy.speed * delta;
-
+            // info!("Moving enemy by: {:?}", movement);
+            
             // Update position
             transform.translation.x += movement.x;
             transform.translation.y += movement.y;
@@ -116,9 +139,12 @@ fn move_enemies_along_path(
                 let angle = flow_vector.y.atan2(flow_vector.x);
                 transform.rotation = Quat::from_rotation_z(angle);
             }
+        } else {
+            info!("No movement - zero flow vector at {:?}", grid_pos);
         }
     }
 }
+
 
 fn check_enemy_health(
     mut commands: Commands,
@@ -142,9 +168,8 @@ fn check_enemy_health(
         // is handled in a separate system
     }
 }
-
-/// Handle enemies that reach the end of the path
-pub fn handle_enemies_at_end(
+// Make sure this function is properly implemented
+fn handle_enemies_at_end(
     mut commands: Commands,
     map: Res<Map>,
     enemies: Query<(Entity, &Transform, &Enemy)>,
@@ -154,20 +179,48 @@ pub fn handle_enemies_at_end(
 
     for (entity, transform, _enemy) in enemies.iter() {
         let enemy_pos = Vec2::new(transform.translation.x, transform.translation.y);
-        let distance_to_end = distance(enemy_pos, end_pos);
+        let distance_to_end = enemy_pos.distance(end_pos);
 
-        // If enemy is close enough to end point
-        if distance_to_end < 10.0 {
+        // If enemy is close enough to end point (adjust this value if needed)
+        if distance_to_end < 30.0 {
+            info!("Enemy reached the end at: {:?}", end_pos);
+            
             // Despawn the enemy
             commands.entity(entity).despawn();
 
             // Reduce player lives if resources exist
             if let Some(mut resources) = game_resources.as_mut() {
                 resources.lives = resources.lives.saturating_sub(1);
+                info!("Player lives remaining: {}", resources.lives);
             }
         }
     }
 }
+
+// pub fn handle_enemies_at_end(
+//     mut commands: Commands,
+//     map: Res<Map>,
+//     enemies: Query<(Entity, &Transform, &Enemy)>,
+//     mut game_resources: Option<ResMut<crate::core::game_state::PlayerResource>>,
+// ) {
+//     let end_pos = map.grid_to_world(map.end);
+//
+//     for (entity, transform, _enemy) in enemies.iter() {
+//         let enemy_pos = Vec2::new(transform.translation.x, transform.translation.y);
+//         let distance_to_end = distance(enemy_pos, end_pos);
+//
+//         // If enemy is close enough to end point
+//         if distance_to_end < 10.0 {
+//             // Despawn the enemy
+//             commands.entity(entity).despawn();
+//
+//             // Reduce player lives if resources exist
+//             if let Some(mut resources) = game_resources.as_mut() {
+//                 resources.lives = resources.lives.saturating_sub(1);
+//             }
+//         }
+//     }
+// }
 
 // System for enemy wave spawning
 pub fn spawn_enemy_wave(

@@ -91,8 +91,7 @@ impl FlowField {
         (x, y)
     }
 
-    /// Compute flow field from given map and goal position
-    pub fn compute(&mut self, map: &Map, goal_pos: UVec2) {
+        pub fn compute(&mut self, map: &Map, goal_pos: UVec2) {
         // Reset fields
         self.integration_field = vec![u32::MAX; self.width * self.height];
         self.field = vec![None; self.width * self.height];
@@ -119,41 +118,27 @@ impl FlowField {
         self.integration_field[goal_index] = 0;
         queue.push_back(goal_index);
 
+        // Debug info about path
+        info!("Computing flow field from goal {:?} to start", goal_pos);
+        info!("Path has {} tiles", map.path_tiles.len());
+        
+        // Print out the path tiles for debugging
+        for (i, &pos) in map.path_tiles.iter().enumerate() {
+            info!("Path tile {}: {:?}", i, pos);
+        }
+
         // Process the queue (Dijkstra's algorithm)
         while let Some(current_index) = queue.pop_front() {
             let current_cost = self.integration_field[current_index];
             let (x, y) = self.get_coordinates(current_index);
 
-            // Define potential neighbors with bounds checking
-            let mut neighbors = Vec::with_capacity(8);
-
-            // Cardinal directions
-            if x + 1 < self.width {
-                neighbors.push((x + 1, y, 10)); // East
-            }
-            if x > 0 {
-                neighbors.push((x - 1, y, 10)); // West
-            }
-            if y + 1 < self.height {
-                neighbors.push((x, y + 1, 10)); // North
-            }
-            if y > 0 {
-                neighbors.push((x, y - 1, 10)); // South
-            }
-
-            // Diagonals
-            if x + 1 < self.width && y + 1 < self.height {
-                neighbors.push((x + 1, y + 1, 14)); // NorthEast
-            }
-            if x > 0 && y + 1 < self.height {
-                neighbors.push((x - 1, y + 1, 14)); // NorthWest
-            }
-            if x + 1 < self.width && y > 0 {
-                neighbors.push((x + 1, y - 1, 14)); // SouthEast
-            }
-            if x > 0 && y > 0 {
-                neighbors.push((x - 1, y - 1, 14)); // SouthWest
-            }
+            // Define potential neighbors
+            let neighbors = [
+                (x + 1, y, 10),     // East
+                (x.wrapping_sub(1), y, 10), // West
+                (x, y + 1, 10),     // South (in grid coordinates)
+                (x, y.wrapping_sub(1), 10), // North (in grid coordinates)
+            ];
 
             for (nx, ny, cost) in neighbors {
                 // Skip out-of-bounds neighbors
@@ -163,8 +148,11 @@ impl FlowField {
 
                 let neighbor_index = self.get_index(nx, ny);
 
-                // Skip non-walkable cells (obstacles)
-                if !map.path_tiles.contains(&UVec2::new(nx as u32, ny as u32)) {
+                // Consider a cell walkable if it's in the path tiles
+                let is_walkable = map.path_tiles.contains(&UVec2::new(nx as u32, ny as u32));
+                
+                // Skip non-walkable cells
+                if !is_walkable {
                     continue;
                 }
 
@@ -180,62 +168,78 @@ impl FlowField {
         }
 
         // Generate flow field from integration field
-        for y in 0..self.height {
-            for x in 0..self.width {
-                let index = self.get_index(x, y);
+        for &path_pos in &map.path_tiles {
+            let x = path_pos.x as usize;
+            let y = path_pos.y as usize;
+            
+            if x >= self.width || y >= self.height {
+                continue;
+            }
+            
+            let index = self.get_index(x, y);
+            
+            // Skip unreachable cells
+            if self.integration_field[index] == u32::MAX {
+                info!("Path tile {:?} is not reachable!", path_pos);
+                continue;
+            }
 
-                // Skip non-walkable cells
-                if !map.path_tiles.contains(&UVec2::new(x as u32, y as u32))
-                    || self.integration_field[index] == u32::MAX
-                {
+            // Find the neighbor with the lowest cost
+            let mut best_direction = FlowDirection::None;
+            let mut best_cost = self.integration_field[index];
+
+            // Define neighbors: East, West, South, North
+            // Note: In your world coordinates, Y increases upward, but in grid coords
+            // it increases downward, so we need to reverse the meaning of North/South
+            let neighbors = [
+                (x + 1, y, FlowDirection::East),
+                (x.wrapping_sub(1), y, FlowDirection::West),
+                (x, y + 1, FlowDirection::South), // Going down in grid coords
+                (x, y.wrapping_sub(1), FlowDirection::North), // Going up in grid coords
+            ];
+
+            for (nx, ny, direction) in neighbors {
+                // Skip out-of-bounds neighbors
+                if nx >= self.width || ny >= self.height {
                     continue;
                 }
 
-                // Find the neighbor with the lowest cost
-                let mut best_direction = FlowDirection::None;
-                let mut best_cost = self.integration_field[index];
+                let neighbor_index = self.get_index(nx, ny);
 
-                // Define potential neighbors with bounds checking
-                let mut neighbors = Vec::with_capacity(8);
-
-                // Cardinal directions
-                if x + 1 < self.width {
-                    neighbors.push((x + 1, y, FlowDirection::East));
-                }
-                if x > 0 {
-                    neighbors.push((x - 1, y, FlowDirection::West));
-                }
-                if y + 1 < self.height {
-                    neighbors.push((x, y + 1, FlowDirection::North));
-                }
-                if y > 0 {
-                    neighbors.push((x, y - 1, FlowDirection::South));
+                // Skip non-path or unreachable cells
+                if !map.path_tiles.contains(&UVec2::new(nx as u32, ny as u32)) || 
+                   self.integration_field[neighbor_index] == u32::MAX {
+                    continue;
                 }
 
-                for (nx, ny, direction) in neighbors {
-                    // Skip out-of-bounds neighbors
-                    if nx >= self.width || ny >= self.height {
-                        continue;
-                    }
-
-                    let neighbor_index = self.get_index(nx, ny);
-
-                    // Skip non-walkable cells
-                    if !map.path_tiles.contains(&UVec2::new(nx as u32, ny as u32))
-                        || self.integration_field[neighbor_index] == u32::MAX
-                    {
-                        continue;
-                    }
-
-                    // If this neighbor has a lower cost, update best direction
-                    if self.integration_field[neighbor_index] < best_cost {
-                        best_cost = self.integration_field[neighbor_index];
-                        best_direction = direction;
-                    }
+                // If this neighbor has a lower cost, update best direction
+                if self.integration_field[neighbor_index] < best_cost {
+                    best_cost = self.integration_field[neighbor_index];
+                    best_direction = direction;
                 }
+            }
 
-                // Set the direction for this cell
-                self.field[index] = Some(best_direction);
+            // Set the direction for this cell
+            self.field[index] = Some(best_direction);
+        }
+
+        // Debug output to verify directions
+        for &path_pos in &map.path_tiles {
+            let x = path_pos.x as usize;
+            let y = path_pos.y as usize;
+            
+            if x >= self.width || y >= self.height {
+                continue;
+            }
+            
+            let index = self.get_index(x, y);
+            
+            if index < self.field.len() {
+                if let Some(dir) = self.field[index] {
+                    info!("Path tile at {:?} has direction: {:?}", path_pos, dir);
+                } else {
+                    info!("Path tile at {:?} has NO direction", path_pos);
+                }
             }
         }
 
@@ -306,7 +310,7 @@ fn update_flow_field_visualization(
         || flow_field.is_none()
         || !flow_field.as_ref().unwrap().is_initialized
     {
-        info!("no flow man!!");
+        // info!("no flow man!!");
         return;
     }
 
