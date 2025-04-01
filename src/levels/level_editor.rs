@@ -1,8 +1,9 @@
+use crate::core::config::{CELL_SIZE, GRID_HEIGHT, GRID_WIDTH, WINDOW_HEIGHT, WINDOW_WIDTH}; // Assuming these are f32 constants
 use crate::core::game_state::GameState;
+use crate::core::map::Map;
 use crate::levels::level_textures::{
     AvailableTextures, PathTexture, TextureSelectorPanel, get_selected_texture,
 };
-use crate::core::map::Map;
 use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
 use serde::{Deserialize, Serialize};
@@ -269,7 +270,7 @@ fn editor_input_handler(
     map: Option<Res<Map>>,
     asset_server: Res<AssetServer>,
     textures: Res<AvailableTextures>,
-     markers_query: Query<(Entity, &Transform), With<EditorPathMarker>>,
+    markers_query: Query<(Entity, &Transform), With<EditorPathMarker>>,
 ) {
     if mouse_input.just_pressed(MouseButton::Left) {
         let (camera, camera_transform) = camera_q.single();
@@ -312,10 +313,10 @@ fn editor_input_handler(
                                 let world_pos = if let Some(map) = map.as_ref() {
                                     map.grid_to_world(grid_pos)
                                 } else {
-                                    let grid_start_x =
-                                        -crate::core::config::WINDOW_WIDTH / 2.0 + grid_size.x / 2.0;
-                                    let grid_start_y =
-                                        crate::core::config::WINDOW_HEIGHT / 2.0 - grid_size.y / 2.0;
+                                    let grid_start_x = -crate::core::config::WINDOW_WIDTH / 2.0
+                                        + grid_size.x / 2.0;
+                                    let grid_start_y = crate::core::config::WINDOW_HEIGHT / 2.0
+                                        - grid_size.y / 2.0;
 
                                     Vec2::new(
                                         grid_start_x + grid_pos.x as f32 * grid_size.x,
@@ -418,11 +419,11 @@ fn editor_input_handler(
                             ));
                         }
                     }
-                      EditorTool::TextureSelector => {
+                    EditorTool::TextureSelector => {
                         // When in texture selector mode, clicking doesn't place anything
                         // The texture panel should be visible and the user just selects a texture
                         // No additional action needed here as texture selection is handled elsewhere
-                    },
+                    }
                 }
             }
         }
@@ -451,77 +452,64 @@ fn editor_input_handler(
     }
 }
 
-fn render_editor_path(editor_data: Res<EditorData>, mut gizmos: Gizmos, map: Option<Res<Map>>) {
-    let grid_size = if let Some(map) = map.as_ref() {
-        map.grid_size
+// Function to render path and grid overlay in the editor
+fn render_editor_path(
+    editor_data: Res<EditorData>,
+    mut gizmos: Gizmos,
+    map: Option<Res<Map>>, // Use Option<Res<Map>> to handle cases where map might not exist yet
+) {
+    let (grid_size, dimensions) = if let Some(map_res) = map.as_ref() {
+        (map_res.grid_size, map_res.dimensions)
     } else {
-        Vec2::new(48.0, 48.0)
+        (
+            Vec2::new(CELL_SIZE, CELL_SIZE),
+            UVec2::new(GRID_WIDTH as u32, GRID_HEIGHT as u32),
+        )
     };
 
-    let grid_start_x = -crate::core::config::WINDOW_WIDTH / 2.0 + grid_size.x / 2.0;
-    let grid_start_y = crate::core::config::WINDOW_HEIGHT / 2.0 - grid_size.y / 2.0;
+    let grid_to_world_logic = |grid_pos: UVec2| -> Vec2 {
+        let grid_origin_x = -WINDOW_WIDTH / 2.0;
+        let grid_origin_y = WINDOW_HEIGHT / 2.0;
+        let cell_corner_x = grid_origin_x + grid_pos.x as f32 * grid_size.x;
+        let cell_corner_y = grid_origin_y - grid_pos.y as f32 * grid_size.y;
+        Vec2::new(
+            cell_corner_x + grid_size.x / 2.0,
+            cell_corner_y - grid_size.y / 2.0,
+        )
+    };
 
-    // Draw path lines
     if editor_data.path.len() >= 2 {
         for i in 0..editor_data.path.len() - 1 {
-            let (start, _)  = editor_data.path[i];
-            let (end , _) = editor_data.path[i + 1];
+            let start_grid = editor_data.path[i].0; // Use .0 if it's a tuple (UVec2, _)
+            let end_grid = editor_data.path[i + 1].0; // Use .0 if it's a tuple (UVec2, _)
 
-            let start_world = Vec2::new(
-                grid_start_x + start.x as f32 * grid_size.x,
-                grid_start_y - start.y as f32 * grid_size.y,
-            );
-
-            let end_world = Vec2::new(
-                grid_start_x + end.x as f32 * grid_size.x,
-                grid_start_y - end.y as f32 * grid_size.y,
-            );
+            let start_world = grid_to_world_logic(start_grid);
+            let end_world = grid_to_world_logic(end_grid);
 
             gizmos.line_2d(start_world, end_world, Color::srgb(0.9, 0.3, 0.7));
         }
     }
 
     if editor_data.grid_overlay {
-        let dimensions = if let Some(map) = map.as_ref() {
-            map.dimensions
-        } else {
-            UVec2::new(27, 15)
-        };
+        let grid_world_left = -WINDOW_WIDTH / 2.0;
+        let grid_world_top = WINDOW_HEIGHT / 2.0;
+        let grid_world_width = dimensions.x as f32 * grid_size.x;
+        let grid_world_height = dimensions.y as f32 * grid_size.y;
+        let grid_world_right = grid_world_left + grid_world_width;
+        let grid_world_bottom = grid_world_top - grid_world_height; // Subtract because Y decreases
 
-        let grid_size = if let Some(map) = map.as_ref() {
-            map.grid_size
-        } else {
-            Vec2::new(48.0, 48.0)
-        };
-
-        let grid_start_pos = if let Some(map) = map.as_ref() {
-            map.grid_to_world(UVec2::new(0, 0))
-        } else {
-            let grid_width = dimensions.x as f32 * grid_size.x;
-            let grid_height = dimensions.y as f32 * grid_size.y;
-            Vec2::new(-grid_width / 2.0, grid_height / 2.0)
-        };
-
-        // Draw vertical grid lines
-        for x in 0..=dimensions.x {
-            let x_pos = grid_start_pos.x + (x as f32 * grid_size.x);
-            let start = Vec2::new(grid_start_x, x_pos);
-            let end = Vec2::new(
-                x_pos,
-                grid_start_pos.y - (dimensions.y as f32 * grid_size.y),
-            );
-            gizmos.line_2d(start, end, Color::srgba(0.2, 0.2, 0.2, 0.8));
+        for x_index in 0..=dimensions.x {
+            let x_world = grid_world_left + x_index as f32 * grid_size.x;
+            let line_start = Vec2::new(x_world, grid_world_top);
+            let line_end = Vec2::new(x_world, grid_world_bottom);
+            gizmos.line_2d(line_start, line_end, Color::srgba(0.5, 0.5, 0.5, 0.8)); // Gray color
         }
 
-        // Draw horizontal grid lines
-        for y in 0..=dimensions.y {
-            let y_pos = grid_start_pos.y - (y as f32 * grid_size.y);
-            let start = Vec2::new(grid_start_pos.x, y_pos);
-            let end = Vec2::new(
-                grid_start_pos.x + (dimensions.x as f32 * grid_size.x),
-                y_pos,
-            );
-            gizmos.line_2d(start, end, Color::srgba(0.2, 0.2, 0.4, 0.8));
+        for y_index in 0..=dimensions.y {
+            let y_world = grid_world_top - y_index as f32 * grid_size.y; // Subtract because Y decreases
+            let line_start = Vec2::new(grid_world_left, y_world);
+            let line_end = Vec2::new(grid_world_right, y_world);
+            gizmos.line_2d(line_start, line_end, Color::srgba(0.5, 0.5, 0.5, 0.8)); // Gray color
         }
     }
 }
@@ -559,19 +547,19 @@ fn export_level_data(
 fn export_level(editor_data: &EditorData, level_name: &str) {
     let mut path = Vec::new();
     let mut path_textures = Vec::new();
-    
+
     for (pos, texture) in &editor_data.path {
         path.push(vec![pos.x, pos.y]);
-        
+
         path_textures.push(PathTexture {
             position: vec![pos.x, pos.y],
             texture: texture.clone(),
         });
     }
-    
+
     let level_data = LevelData {
         path,
-        path_textures,  // Include texture information
+        path_textures, // Include texture information
         start: if let Some(start) = editor_data.start {
             vec![start.x, start.y]
         } else {
@@ -590,29 +578,29 @@ fn export_level(editor_data: &EditorData, level_name: &str) {
         dimensions: vec![27, 15],
     };
 
-//     let level_data = LevelData {
-//         path: editor_data
-//             .path
-//             .iter()
-//             .map(|pos| vec![pos.x, pos.y])
-//             .collect(),
-//         start: if let Some(start) = editor_data.start {
-//             vec![start.x, start.y]
-//         } else {
-//             vec![0, 0]
-//         },
-//         end: if let Some(end) = editor_data.end {
-//             vec![end.x, end.y]
-//         } else {
-//             vec![0, 0]
-//         },
-//         buildable_areas: editor_data
-//             .buildable_areas
-//             .iter()
-//             .map(|pos| vec![pos.x, pos.y])
-//             .collect(),
-//         dimensions: vec![27, 15],
-//     };
+    //     let level_data = LevelData {
+    //         path: editor_data
+    //             .path
+    //             .iter()
+    //             .map(|pos| vec![pos.x, pos.y])
+    //             .collect(),
+    //         start: if let Some(start) = editor_data.start {
+    //             vec![start.x, start.y]
+    //         } else {
+    //             vec![0, 0]
+    //         },
+    //         end: if let Some(end) = editor_data.end {
+    //             vec![end.x, end.y]
+    //         } else {
+    //             vec![0, 0]
+    //         },
+    //         buildable_areas: editor_data
+    //             .buildable_areas
+    //             .iter()
+    //             .map(|pos| vec![pos.x, pos.y])
+    //             .collect(),
+    //         dimensions: vec![27, 15],
+    //     };
 
     if let Ok(json_string) = serde_json::to_string_pretty(&level_data) {
         std::fs::create_dir_all("assets/levels").unwrap_or_else(|_| {
@@ -1126,7 +1114,7 @@ fn handle_context_menu_interaction(
     camera_q: Query<(&Camera, &GlobalTransform)>,
     map: Option<Res<Map>>,
     markers_query: Query<(Entity, &Transform), With<EditorPathMarker>>,
-    textures: Res<AvailableTextures>
+    textures: Res<AvailableTextures>,
 ) {
     for (interaction, option) in interaction_query.iter() {
         if matches!(interaction, Interaction::Pressed) {
