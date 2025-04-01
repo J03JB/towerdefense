@@ -3,6 +3,7 @@ use crate::core::map::Map;
 use crate::core::utils::distance;
 use crate::entities::pathfinding::{FlowField, FlowDirection};
 use bevy::prelude::*;
+use bevy::math::Vec3Swizzles;
 
 pub struct EnemyPlugin;
 
@@ -88,88 +89,86 @@ fn move_enemies_along_path(
     time: Res<Time>,
     map: Res<Map>,
     flow_field: Option<Res<FlowField>>,
-    mut enemies: Query<(&mut Transform, &mut Enemy)>,
+    mut enemies: Query<(&mut Transform, &Enemy)>, // Keep Enemy non-mut if only reading speed
 ) {
     let delta = time.delta_secs();
 
-    // If we don't have a flow field yet, return
-    let Some(flow_field) = flow_field.as_ref() else {
-        return;
-    };
+    let Some(flow_field) = flow_field else { return; };
+    if !flow_field.is_initialized { return; }
 
-    if !flow_field.is_initialized {
-        return;
-    }
+    for (mut transform, enemy) in enemies.iter_mut() {
+        let current_pos_world = transform.translation.xy();
 
-    for (mut transform, mut enemy) in enemies.iter_mut() {
-        // Get the current world position
-        let current_pos = Vec2::new(transform.translation.x, transform.translation.y);
+        // 1. Find current grid cell
+        let current_grid_pos = map.world_to_grid(current_pos_world);
 
-        // Convert to grid coordinates
-        let grid_pos = map.world_to_grid(current_pos);
-        
-        // Check grid bounds
-        if grid_pos.x as usize >= flow_field.width || grid_pos.y as usize >= flow_field.height {
-            continue;
+        // --- Safety Check: Ensure grid_pos is within bounds ---
+        if current_grid_pos.x >= flow_field.width as u32 || current_grid_pos.y >= flow_field.height as u32 {
+             warn!(
+                "Enemy at {:?} (world {:?}) is outside flow field bounds ({}, {}). Stopping.",
+                current_grid_pos, current_pos_world, flow_field.width, flow_field.height
+            );
+             continue;
+        }
+        // --- End Safety Check ---
+
+        // 2. Get flow direction *from the current cell*
+        // We use get_direction here, not get_flow_vector, to determine the *next cell*
+        let flow_direction_enum = flow_field.get_direction(current_grid_pos.x as usize, current_grid_pos.y as usize);
+
+        // If no direction (e.g., at goal or stuck), don't move
+        let Some(direction) = flow_direction_enum else { continue; };
+        if direction == FlowDirection::None { continue; };
+
+        // 3. Determine the *next* grid cell based on the direction
+        let next_grid_pos = match direction {
+            FlowDirection::North => UVec2::new(current_grid_pos.x, current_grid_pos.y.saturating_sub(1)), // Grid Y decreases upwards
+            FlowDirection::South => UVec2::new(current_grid_pos.x, (current_grid_pos.y + 1).min(flow_field.height as u32 - 1)), // Grid Y increases downwards
+            FlowDirection::East => UVec2::new((current_grid_pos.x + 1).min(flow_field.width as u32 - 1), current_grid_pos.y),
+            FlowDirection::West => UVec2::new(current_grid_pos.x.saturating_sub(1), current_grid_pos.y),
+            FlowDirection::None => current_grid_pos, // Should not happen due to check above
+        };
+
+        // 4. Calculate the world position of the *center* of the next grid cell
+        let target_pos_world = map.grid_to_world(next_grid_pos);
+
+        // 5. Calculate the vector pointing from current position to the target center
+        let direction_to_target = target_pos_world - current_pos_world;
+
+        // 6. Calculate the distance we *can* move this frame
+        let max_distance_this_frame = enemy.speed * delta;
+
+        // 7. Calculate the actual movement vector
+        let movement;
+        if direction_to_target.length_squared() < max_distance_this_frame * max_distance_this_frame {
+            // If we can reach the target center this frame, move exactly there
+            movement = direction_to_target;
+        } else {
+            // Otherwise, move towards the target by the max distance
+            movement = direction_to_target.normalize_or_zero() * max_distance_this_frame;
         }
 
-        // Get flow direction at current grid position
-        let flow_direction = flow_field.get_direction(grid_pos.x as usize, grid_pos.y as usize);
+        // 8. Apply the movement
+        transform.translation.x += movement.x;
+        transform.translation.y += movement.y;
 
-        // Get the next grid position and its world center
-        let next_grid_pos = match flow_direction {
-            Some(FlowDirection::North) => UVec2::new(grid_pos.x, grid_pos.y - 1),
-            Some(FlowDirection::South) => UVec2::new(grid_pos.x, grid_pos.y + 1),
-            Some(FlowDirection::East) => UVec2::new(grid_pos.x + 1, grid_pos.y),
-            Some(FlowDirection::West) => UVec2::new(grid_pos.x - 1, grid_pos.y),
-            Some(FlowDirection::None) | None => grid_pos,
-        };
-
-        let next_world_pos = map.grid_to_world(next_grid_pos);
-        
-        // Calculate movement to fully cover the grid cell
-        let precise_movement = match flow_direction {
-            Some(FlowDirection::North) => {
-                // Move fully up with guaranteed coverage
-                Vec2::new(0.0, map.grid_size.y + enemy.speed * 0.01)
-            },
-            Some(FlowDirection::South) => {
-                // Move fully down
-                Vec2::new(0.0, -map.grid_size.y - enemy.speed * 0.01)
-            },
-            Some(FlowDirection::East) => {
-                // Move fully right
-                Vec2::new(map.grid_size.x + enemy.speed * 0.01, 0.0)
-            },
-            Some(FlowDirection::West) => {
-                // Move fully left
-                Vec2::new(-map.grid_size.x - enemy.speed * 0.01, 0.0)
-            },
-            Some(FlowDirection::None) | None => Vec2::ZERO,
-        };
-
-        // Update position with precise movement
-        transform.translation.x += precise_movement.x;
-        transform.translation.y += precise_movement.y;
-
-        // Ensure exact positioning
-        transform.translation.x = next_world_pos.x;
-        transform.translation.y = next_world_pos.y;
-
-        // Logging for debugging
-        // info!(
-        //     "Current Grid: {:?}, Flow Direction: {:?}, Next Grid: {:?}, World Movement: {:?}",
-        //     grid_pos, flow_direction, next_grid_pos, precise_movement
-        // );
-
-        // Rotate enemy to face movement direction
-        if precise_movement != Vec2::ZERO {
-            let angle = precise_movement.y.atan2(precise_movement.x);
+        // 9. Rotation (Optional - Face the actual movement direction)
+        if movement != Vec2::ZERO {
+            let angle = movement.y.atan2(movement.x);
             transform.rotation = Quat::from_rotation_z(angle);
         }
+
+        // --- Debug Visualization (Optional) ---
+        // use bevy::gizmos::gizmos::Gizmos;
+        // fn debug_move(mut gizmos: Gizmos, query: Query<&Transform, With<Enemy>>) {
+        //     for transform in query.iter() {
+        //         gizmos.circle_2d(transform.translation.xy(), 5.0, Color::RED);
+        //         // You could also draw the target_pos_world here if you pass it out or store it
+        //     }
+        // }
+        // ------------------------------------
     }
 }
-
 // fn move_enemies_along_path(
 //     time: Res<Time>,
 //     map: Res<Map>,
@@ -266,26 +265,35 @@ fn check_enemy_health(
 fn handle_enemies_at_end(
     mut commands: Commands,
     map: Res<Map>,
-    enemies: Query<(Entity, &Transform, &Enemy)>,
+    enemies: Query<(Entity, &Transform, &Enemy)>, // Enemy component not strictly needed here
     mut game_resources: Option<ResMut<crate::core::game_state::PlayerResource>>,
+    time: Res<Time> // Add Time resource if you want to log frequency
 ) {
-    let end_pos = map.grid_to_world(map.end);
+    // Calculate the end position ONCE outside the loop
+    let end_pos_world = map.grid_to_world(map.end);
+
+    // Define a threshold distance. This should likely be related to the grid size
+    // or the enemy's speed/size. Maybe half a grid cell?
+    let end_threshold = map.grid_size.x.min(map.grid_size.y) * 0.5; // Example threshold
 
     for (entity, transform, _enemy) in enemies.iter() {
-        let enemy_pos = Vec2::new(transform.translation.x, transform.translation.y);
-        let distance_to_end = enemy_pos.distance(end_pos);
+        let enemy_pos_xy = transform.translation.xy();
 
-        // If enemy is close enough to end point (adjust this value if needed)
-        if distance_to_end < 30.0 {
-            info!("Enemy reached the end at: {:?}", end_pos);
-            
+        // Use distance_squared for efficiency if possible
+        let distance_sq_to_end = enemy_pos_xy.distance_squared(end_pos_world);
+
+        // If enemy is close enough to the end point
+        if distance_sq_to_end < end_threshold * end_threshold {
+            // Log only when it actually happens
+            info!(tick = time.elapsed_secs_f64(), "Enemy {:?} reached the end (pos: {:?}, end: {:?}). Despawning.", entity, enemy_pos_xy, end_pos_world);
+
             // Despawn the enemy
             commands.entity(entity).despawn();
 
             // Reduce player lives if resources exist
             if let Some(mut resources) = game_resources.as_mut() {
                 resources.lives = resources.lives.saturating_sub(1);
-                info!("Player lives remaining: {}", resources.lives);
+                info!(tick = time.elapsed_secs_f64(), "Player lives remaining: {}", resources.lives);
             }
         }
     }
