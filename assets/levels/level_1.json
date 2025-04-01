@@ -5,16 +5,16 @@
       10
     ],
     [
-      15,
+      10,
       10
     ],
     [
-      15,
-      6
+      10,
+      8
     ],
     [
       27,
-      6
+      8
     ],
   ]
   "path_textures": [
@@ -27,36 +27,22 @@
     },
     {
       "position": [
-        7,
-        0
-      ],
-      "texture": "textures/path01.png"
-    },
-    {
-      "position": [
-        15,
+        10,
         10
       ],
       "texture": "textures/path01.png"
     },
     {
       "position": [
-        15,
-        6
+        10,
+        8
       ],
       "texture": "textures/path01.png"
     },
     {
       "position": [
         27,
-        6
-      ],
-      "texture": "textures/path01.png"
-    },
-    {
-      "position": [
-        18,
-        0
+        8
       ],
       "texture": "textures/path01.png"
     }
@@ -67,7 +53,7 @@
   ],
   "end": [
     27,
-    6
+    8
   ],
   "buildable_areas": [],
   "dimensions": [

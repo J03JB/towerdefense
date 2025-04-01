@@ -150,12 +150,12 @@ fn create_map() -> Map {
     let mut x = 0;
     let mut y = 10;
     path_tiles.push(UVec2::new(x, y));
-    while x < 15 {
+    while x < 10 {
         x += 1;
         path_tiles.push(UVec2::new(x, y));
     }
     // Up to (15, 5)
-    while y > 6 {
+    while y > 8 {
         y -= 1;
         path_tiles.push(UVec2::new(x, y));
     }
@@ -182,7 +182,7 @@ fn create_map() -> Map {
         path_tiles,
         buildable_tiles,
         start: UVec2::new(0, 10), // Start at the beginning of the path
-        end: UVec2::new(26, 6),  // End at the end of the path
+        end: UVec2::new(26, 8),  // End at the end of the path
     }
 }
 
@@ -359,6 +359,7 @@ fn setup_level(mut commands: Commands, asset_server: Res<AssetServer>) {
         info!("Failed to load level data, using fallback map");
         create_map()
     };
+    info!("path tiles: {:?}", map.path_tiles);
 
     // Initialize flow field
     let map_width = map.dimensions.x as usize;
