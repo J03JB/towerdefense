@@ -91,7 +91,7 @@ impl FlowField {
         (x, y)
     }
 
-        pub fn compute(&mut self, map: &Map, goal_pos: UVec2) {
+    pub fn compute(&mut self, map: &Map, goal_pos: UVec2) {
         // Reset fields
         self.integration_field = vec![u32::MAX; self.width * self.height];
         self.field = vec![None; self.width * self.height];
@@ -121,7 +121,7 @@ impl FlowField {
         // Debug info about path
         info!("Computing flow field from goal {:?} to start", goal_pos);
         info!("Path has {} tiles", map.path_tiles.len());
-        
+
         // Print out the path tiles for debugging
         for (i, &pos) in map.path_tiles.iter().enumerate() {
             info!("Path tile {}: {:?}", i, pos);
@@ -134,9 +134,9 @@ impl FlowField {
 
             // Define potential neighbors
             let neighbors = [
-                (x + 1, y, 10),     // East
+                (x + 1, y, 10),             // East
                 (x.wrapping_sub(1), y, 10), // West
-                (x, y + 1, 10),     // South (in grid coordinates)
+                (x, y + 1, 10),             // South (in grid coordinates)
                 (x, y.wrapping_sub(1), 10), // North (in grid coordinates)
             ];
 
@@ -150,7 +150,7 @@ impl FlowField {
 
                 // Consider a cell walkable if it's in the path tiles
                 let is_walkable = map.path_tiles.contains(&UVec2::new(nx as u32, ny as u32));
-                
+
                 // Skip non-walkable cells
                 if !is_walkable {
                     continue;
@@ -171,13 +171,13 @@ impl FlowField {
         for &path_pos in &map.path_tiles {
             let x = path_pos.x as usize;
             let y = path_pos.y as usize;
-            
+
             if x >= self.width || y >= self.height {
                 continue;
             }
-            
+
             let index = self.get_index(x, y);
-            
+
             // Skip unreachable cells
             if self.integration_field[index] == u32::MAX {
                 info!("Path tile {:?} is not reachable!", path_pos);
@@ -207,8 +207,9 @@ impl FlowField {
                 let neighbor_index = self.get_index(nx, ny);
 
                 // Skip non-path or unreachable cells
-                if !map.path_tiles.contains(&UVec2::new(nx as u32, ny as u32)) || 
-                   self.integration_field[neighbor_index] == u32::MAX {
+                if !map.path_tiles.contains(&UVec2::new(nx as u32, ny as u32))
+                    || self.integration_field[neighbor_index] == u32::MAX
+                {
                     continue;
                 }
 
@@ -227,13 +228,13 @@ impl FlowField {
         for &path_pos in &map.path_tiles {
             let x = path_pos.x as usize;
             let y = path_pos.y as usize;
-            
+
             if x >= self.width || y >= self.height {
                 continue;
             }
-            
+
             let index = self.get_index(x, y);
-            
+
             if index < self.field.len() {
                 if let Some(dir) = self.field[index] {
                     info!("Path tile at {:?} has direction: {:?}", path_pos, dir);
