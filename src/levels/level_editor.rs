@@ -456,7 +456,7 @@ fn editor_input_handler(
 fn render_editor_path(
     editor_data: Res<EditorData>,
     mut gizmos: Gizmos,
-    map: Option<Res<Map>>, // Use Option<Res<Map>> to handle cases where map might not exist yet
+    map: Option<Res<Map>>,
 ) {
     let (grid_size, dimensions) = if let Some(map_res) = map.as_ref() {
         (map_res.grid_size, map_res.dimensions)
@@ -480,8 +480,8 @@ fn render_editor_path(
 
     if editor_data.path.len() >= 2 {
         for i in 0..editor_data.path.len() - 1 {
-            let start_grid = editor_data.path[i].0; // Use .0 if it's a tuple (UVec2, _)
-            let end_grid = editor_data.path[i + 1].0; // Use .0 if it's a tuple (UVec2, _)
+            let start_grid = editor_data.path[i].0;
+            let end_grid = editor_data.path[i + 1].0;
 
             let start_world = grid_to_world_logic(start_grid);
             let end_world = grid_to_world_logic(end_grid);
@@ -630,7 +630,7 @@ struct CancelSaveButton;
 impl Default for EditorTextInput {
     fn default() -> Self {
         Self {
-            level_name: "level_1".to_string(),
+            level_name: " ".to_string(),
             dialog_open: false,
         }
     }
