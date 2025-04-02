@@ -16,6 +16,7 @@
 [ ] delete/clear level
 [ ] placeables... 
 [ ] context menu
+[ ] place path tiles correctly
 
 [ Map ]
 [ ] place path textures from json
