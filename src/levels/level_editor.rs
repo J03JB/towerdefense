@@ -634,8 +634,11 @@ impl Default for EditorTextInput {
 
 fn handle_text_input(
     mut editor_text_input: ResMut<EditorTextInput>,
+    editor_data: ResMut<EditorData>,
     mut text_query: Query<&mut Text, With<LevelNameInput>>,
     keyboard_input: Res<ButtonInput<KeyCode>>,
+    mut commands: Commands,
+    dialog_query: Query<Entity, With<SaveDialog>>,
 ) {
     if !editor_text_input.dialog_open {
         return;
@@ -655,6 +658,12 @@ fn handle_text_input(
         } else if *key == KeyCode::Minus {
             editor_text_input.level_name.push('-');
             name_changed = true;
+        } else if *key == KeyCode::Enter {
+            export_level(&editor_data, &editor_text_input.level_name);
+            editor_text_input.dialog_open = false;
+            for entity in dialog_query.iter() {
+                commands.entity(entity).despawn_recursive();
+            }
         } else {
             let char = crate::core::utils::key_to_char(*key);
             editor_text_input
