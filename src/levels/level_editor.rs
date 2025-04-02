@@ -453,11 +453,7 @@ fn editor_input_handler(
 }
 
 // Function to render path and grid overlay in the editor
-fn render_editor_path(
-    editor_data: Res<EditorData>,
-    mut gizmos: Gizmos,
-    map: Option<Res<Map>>,
-) {
+fn render_editor_path(editor_data: Res<EditorData>, mut gizmos: Gizmos, map: Option<Res<Map>>) {
     let (grid_size, dimensions) = if let Some(map_res) = map.as_ref() {
         (map_res.grid_size, map_res.dimensions)
     } else {
@@ -630,7 +626,7 @@ struct CancelSaveButton;
 impl Default for EditorTextInput {
     fn default() -> Self {
         Self {
-            level_name: " ".to_string(),
+            level_name: "".to_string(),
             dialog_open: false,
         }
     }
@@ -647,178 +643,32 @@ fn handle_text_input(
 
     for key in keyboard_input.get_just_pressed() {
         let mut name_changed = false;
-        match key {
-            KeyCode::Backspace => {
-                if !editor_text_input.level_name.is_empty() {
-                    editor_text_input.level_name.pop();
-                    name_changed = true;
-                    // level_name.pop();
-                }
-            }
-            KeyCode::Space => {
-                editor_text_input.level_name.push('_'); // Convert spaces to underscores
-                name_changed = true;
-            }
 
-            KeyCode::KeyA => {
-                editor_text_input.level_name.push('a');
+        if *key == KeyCode::Backspace {
+            if !editor_text_input.level_name.is_empty() {
+                editor_text_input.level_name.pop();
                 name_changed = true;
             }
-            KeyCode::KeyB => {
-                editor_text_input.level_name.push('b');
-                name_changed = true;
-            }
-            KeyCode::KeyC => {
-                editor_text_input.level_name.push('c');
-                name_changed = true;
-            }
-            KeyCode::KeyD => {
-                editor_text_input.level_name.push('d');
-                name_changed = true;
-            }
-            KeyCode::KeyE => {
-                editor_text_input.level_name.push('e');
-                name_changed = true;
-            }
-            KeyCode::KeyF => {
-                editor_text_input.level_name.push('f');
-                name_changed = true;
-            }
-            KeyCode::KeyG => {
-                editor_text_input.level_name.push('g');
-                name_changed = true;
-            }
-            KeyCode::KeyH => {
-                editor_text_input.level_name.push('h');
-                name_changed = true;
-            }
-            KeyCode::KeyI => {
-                editor_text_input.level_name.push('i');
-                name_changed = true;
-            }
-            KeyCode::KeyJ => {
-                editor_text_input.level_name.push('j');
-                name_changed = true;
-            }
-            KeyCode::KeyK => {
-                editor_text_input.level_name.push('k');
-                name_changed = true;
-            }
-            KeyCode::KeyL => {
-                editor_text_input.level_name.push('l');
-                name_changed = true;
-            }
-            KeyCode::KeyM => {
-                editor_text_input.level_name.push('m');
-                name_changed = true;
-            }
-            KeyCode::KeyN => {
-                editor_text_input.level_name.push('n');
-                name_changed = true;
-            }
-            KeyCode::KeyO => {
-                editor_text_input.level_name.push('o');
-                name_changed = true;
-            }
-            KeyCode::KeyP => {
-                editor_text_input.level_name.push('p');
-                name_changed = true;
-            }
-            KeyCode::KeyQ => {
-                editor_text_input.level_name.push('q');
-                name_changed = true;
-            }
-            KeyCode::KeyR => {
-                editor_text_input.level_name.push('r');
-                name_changed = true;
-            }
-            KeyCode::KeyS => {
-                editor_text_input.level_name.push('s');
-                name_changed = true;
-            }
-            KeyCode::KeyT => {
-                editor_text_input.level_name.push('t');
-                name_changed = true;
-            }
-            KeyCode::KeyU => {
-                editor_text_input.level_name.push('u');
-                name_changed = true;
-            }
-            KeyCode::KeyV => {
-                editor_text_input.level_name.push('v');
-                name_changed = true;
-            }
-            KeyCode::KeyW => {
-                editor_text_input.level_name.push('w');
-                name_changed = true;
-            }
-            KeyCode::KeyX => {
-                editor_text_input.level_name.push('x');
-                name_changed = true;
-            }
-            KeyCode::KeyY => {
-                editor_text_input.level_name.push('y');
-                name_changed = true;
-            }
-            KeyCode::KeyZ => {
-                editor_text_input.level_name.push('z');
-                name_changed = true;
-            }
-            KeyCode::Digit0 => {
-                editor_text_input.level_name.push('0');
-                name_changed = true;
-            }
-            KeyCode::Digit1 => {
-                editor_text_input.level_name.push('1');
-                name_changed = true;
-            }
-            KeyCode::Digit2 => {
-                editor_text_input.level_name.push('2');
-                name_changed = true;
-            }
-            KeyCode::Digit3 => {
-                editor_text_input.level_name.push('3');
-                name_changed = true;
-            }
-            KeyCode::Digit4 => {
-                editor_text_input.level_name.push('4');
-                name_changed = true;
-            }
-            KeyCode::Digit5 => {
-                editor_text_input.level_name.push('5');
-                name_changed = true;
-            }
-            KeyCode::Digit6 => {
-                editor_text_input.level_name.push('6');
-                name_changed = true;
-            }
-            KeyCode::Digit7 => {
-                editor_text_input.level_name.push('7');
-                name_changed = true;
-            }
-            KeyCode::Digit8 => {
-                editor_text_input.level_name.push('8');
-                name_changed = true;
-            }
-            KeyCode::Digit9 => {
-                editor_text_input.level_name.push('9');
-                name_changed = true;
-            }
-            KeyCode::Minus => {
-                editor_text_input.level_name.push('-');
-                name_changed = true;
-            }
-            _ => {}
+        } else if *key == KeyCode::Space {
+            editor_text_input.level_name.push('_');
+            name_changed = true;
+        } else if *key == KeyCode::Minus {
+            editor_text_input.level_name.push('-');
+            name_changed = true;
+        } else {
+            let char = crate::core::utils::key_to_char(*key);
+            editor_text_input
+                .level_name
+                .push(char.expect("key not found"));
+            name_changed = true;
         }
+
         if name_changed {
             for mut text in text_query.iter_mut() {
                 *text = Text::new(editor_text_input.level_name.clone());
             }
         }
     }
-
-    // if level_name != editor_text_input.level_name {
-    //     editor_text_input.level_name = level_name;
 
     // Update displayed text
     if let Ok(mut text) = text_query.get_single_mut() {
