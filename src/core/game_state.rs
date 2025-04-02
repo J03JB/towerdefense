@@ -26,15 +26,14 @@ pub enum GameState {
 #[derive(Resource, Default)]
 pub struct PlayerResource {
     pub money: u32,
-    pub lives: u32,
+    pub health: u32,
     pub score: u32,
 }
 
 fn setup_game(mut commands: Commands) {
-    // Initialize default player resources
     commands.insert_resource(PlayerResource {
         money: 100,
-        lives: 20,
+        health: 100,
         score: 0,
     });
 }
@@ -44,7 +43,7 @@ fn check_game_over_condition(
     mut next_state: ResMut<NextState<GameState>>,
 ) {
     // Game over when player runs out of lives
-    if player_resource.lives == 0 {
+    if player_resource.health == 0 {
         next_state.set(GameState::GameOver);
     }
 }
@@ -53,7 +52,7 @@ fn check_game_over_condition(
 pub fn reset_player_resources(mut player_resource: ResMut<PlayerResource>) {
     *player_resource = PlayerResource {
         money: 100,
-        lives: 20,
+        health: 100,
         score: 0,
     };
 }

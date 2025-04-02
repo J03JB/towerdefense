@@ -22,5 +22,6 @@ pub mod ui {
 pub mod levels {
     pub mod level;
     pub mod level_editor;
+    pub mod level_loader;
     pub mod level_textures;
 }

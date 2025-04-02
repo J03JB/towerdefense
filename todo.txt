@@ -16,6 +16,8 @@
 [ ] delete/clear level
 [ ] placeables... 
 [ ] context menu
+    [ ] fix position if off screen
+    [ ] fix click
 [ ] place path tiles correctly
 
 [ Map ]

@@ -256,9 +256,6 @@ fn check_enemy_health(
                 resources.score += enemy.reward;
             }
         }
-
-        // Note: Enemy reaching the end and damaging player lives
-        // is handled in a separate system
     }
 }
 // Make sure this function is properly implemented
@@ -292,37 +289,12 @@ fn handle_enemies_at_end(
 
             // Reduce player lives if resources exist
             if let Some(mut resources) = game_resources.as_mut() {
-                resources.lives = resources.lives.saturating_sub(1);
-                info!(tick = time.elapsed_secs_f64(), "Player lives remaining: {}", resources.lives);
+                resources.health = resources.health.saturating_sub(10);
+                info!(tick = time.elapsed_secs_f64(), "Player health remaining: {}", resources.health);
             }
         }
     }
 }
-
-// pub fn handle_enemies_at_end(
-//     mut commands: Commands,
-//     map: Res<Map>,
-//     enemies: Query<(Entity, &Transform, &Enemy)>,
-//     mut game_resources: Option<ResMut<crate::core::game_state::PlayerResource>>,
-// ) {
-//     let end_pos = map.grid_to_world(map.end);
-//
-//     for (entity, transform, _enemy) in enemies.iter() {
-//         let enemy_pos = Vec2::new(transform.translation.x, transform.translation.y);
-//         let distance_to_end = distance(enemy_pos, end_pos);
-//
-//         // If enemy is close enough to end point
-//         if distance_to_end < 10.0 {
-//             // Despawn the enemy
-//             commands.entity(entity).despawn();
-//
-//             // Reduce player lives if resources exist
-//             if let Some(mut resources) = game_resources.as_mut() {
-//                 resources.lives = resources.lives.saturating_sub(1);
-//             }
-//         }
-//     }
-// }
 
 // System for enemy wave spawning
 pub fn spawn_enemy_wave(

@@ -230,7 +230,7 @@ fn setup_editor(
                     .spawn((
                         Button,
                         button_style.clone(),
-                        BackgroundColor(Color::srgb(0.15, 0.15, 0.15).into()),
+                        BackgroundColor(Color::srgb(0.15, 0.15, 0.15)),
                     ))
                     .with_children(|parent| {
                         parent.spawn((

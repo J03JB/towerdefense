@@ -55,7 +55,7 @@ fn create_map() -> Map {
     let mut x = 0;
     let mut y = 10;
     path_tiles.push(UVec2::new(x, y));
-    while x < 10 {
+    while x < 15 {
         x += 1;
         path_tiles.push(UVec2::new(x, y));
     }
@@ -236,7 +236,7 @@ fn spawn_map_visuals_with_textures(
 
 // Update the setup_level function in level.rs
 fn setup_level(mut commands: Commands, asset_server: Res<AssetServer>) {
-    let level_data_result = std::fs::read_to_string("assets/levels/level_1.json")
+    let level_data_result = std::fs::read_to_string("assets/levels/level_4.json")
         .map_err(|e| format!("Error reading level file: {}", e))
         .and_then(|json_str| {
             serde_json::from_str::<LevelData>(&json_str)
@@ -309,7 +309,7 @@ fn spawn_wave_system(
         // Spawn a basic enemy
         commands.spawn((
             Sprite {
-                image: asset_server.load("enemies/enemy.png"),
+                image: asset_server.load("textures/enemies/enemy.png"),
                 custom_size: Some(Vec2::new(32.0, 32.0)),
                 ..default()
             },
