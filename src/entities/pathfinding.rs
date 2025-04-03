@@ -11,17 +11,9 @@ impl Plugin for PathfindingPlugin {
             .add_systems(Update, toggle_flow_field_visualization);
     }
 }
-#[derive(Resource)]
+#[derive(Resource, Default)]
 pub struct FlowFieldDebugConfig {
     pub show_visualization: bool,
-}
-
-impl Default for FlowFieldDebugConfig {
-    fn default() -> Self {
-        Self {
-            show_visualization: false,
-        }
-    }
 }
 
 /// Flow field type - each cell points to the next cell in path
@@ -189,8 +181,6 @@ impl FlowField {
             let mut best_cost = self.integration_field[index];
 
             // Define neighbors: East, West, South, North
-            // Note: In your world coordinates, Y increases upward, but in grid coords
-            // it increases downward, so we need to reverse the meaning of North/South
             let neighbors = [
                 (x + 1, y, FlowDirection::East),
                 (x.wrapping_sub(1), y, FlowDirection::West),
@@ -283,7 +273,6 @@ fn toggle_flow_field_visualization(
     // Toggle visualization with F key
     if keyboard_input.just_pressed(KeyCode::KeyF) {
         debug_config.show_visualization = !debug_config.show_visualization;
-        info!("you pressed f!");
 
         // Update visibility of all existing arrows
         let visibility = if debug_config.show_visualization {
