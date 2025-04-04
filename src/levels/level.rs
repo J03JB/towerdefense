@@ -236,7 +236,7 @@ fn spawn_map_visuals_with_textures(
 
 // Update the setup_level function in level.rs
 fn setup_level(mut commands: Commands, asset_server: Res<AssetServer>) {
-    let level_data_result = std::fs::read_to_string("assets/levels/level02.json")
+    let level_data_result = std::fs::read_to_string("assets/levels/level-test.json")
         .map_err(|e| format!("Error reading level file: {}", e))
         .and_then(|json_str| {
             serde_json::from_str::<LevelData>(&json_str)
@@ -265,7 +265,8 @@ fn setup_level(mut commands: Commands, asset_server: Res<AssetServer>) {
         create_map()
     };
 
-    info!("path tiles: {:?}", map.path_tiles);
+    // info!("buildable tiles: {:?}", map.buildable_tiles);
+    // info!("path tiles: {:?}", map.path_tiles);
 
     // Initialize flow field
     let map_width = map.dimensions.x as usize;

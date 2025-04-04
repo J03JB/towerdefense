@@ -9,7 +9,7 @@ pub struct RenderPlugin;
 impl Plugin for RenderPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Startup, setup_camera)
-            .add_systems(Update, (highlight_tile_under_cursor,update_sprites));
+            .add_systems(Update, (highlight_tile_under_cursor, update_sprites));
     }
 }
 
@@ -17,9 +17,7 @@ fn setup_camera(mut commands: Commands) {
     commands.spawn((Camera2d, MainCamera));
 }
 
-fn update_sprites() {
-}
-
+fn update_sprites() {}
 
 #[derive(Component)]
 pub struct TileHighlight;
@@ -36,19 +34,26 @@ pub fn highlight_tile_under_cursor(
 
     if let Some(cursor_position) = window.cursor_position() {
         if let Ok(world_position) = camera.viewport_to_world_2d(camera_transform, cursor_position) {
-            let grid_x = ((world_position.x + crate::core::config::WINDOW_WIDTH / 2.0) / map.grid_size.x).floor() as u32;
-            let grid_y = ((crate::core::config::WINDOW_HEIGHT / 2.0 - world_position.y) / map.grid_size.y).floor() as u32;
-            
-            let tile_center_x = (grid_x as f32 * map.grid_size.x) + (map.grid_size.x / 2.0) - crate::core::config::WINDOW_WIDTH / 2.0;
-            let tile_center_y = crate::core::config::WINDOW_HEIGHT / 2.0 - (grid_y as f32 * map.grid_size.y) - (map.grid_size.y / 2.0);
-            
+            let grid_x = ((world_position.x + crate::core::config::WINDOW_WIDTH / 2.0)
+                / map.grid_size.x)
+                .floor() as u32;
+            let grid_y = ((crate::core::config::WINDOW_HEIGHT / 2.0 - world_position.y)
+                / map.grid_size.y)
+                .floor() as u32;
+
+            let tile_center_x = (grid_x as f32 * map.grid_size.x) + (map.grid_size.x / 2.0)
+                - crate::core::config::WINDOW_WIDTH / 2.0;
+            let tile_center_y = crate::core::config::WINDOW_HEIGHT / 2.0
+                - (grid_y as f32 * map.grid_size.y)
+                - (map.grid_size.y / 2.0);
+
             // info!(
             //     "Cursor at world: ({:.1}, {:.1}), Grid: ({}, {}), Tile center: ({:.1}, {:.1})",
-            //     world_position.x, world_position.y, 
+            //     world_position.x, world_position.y,
             //     grid_x, grid_y,
             //     tile_center_x, tile_center_y
             // );
-            
+
             if let Ok(highlight_entity) = highlight.get_single() {
                 commands.entity(highlight_entity).despawn();
             }
@@ -74,5 +79,4 @@ pub fn highlight_tile_under_cursor(
     }
 }
 
-pub fn render_background() {
-}
+pub fn render_background() {}
