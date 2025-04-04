@@ -52,10 +52,18 @@ pub fn highlight_tile_under_cursor(
             if let Ok(highlight_entity) = highlight.get_single() {
                 commands.entity(highlight_entity).despawn();
             }
-            
+
+            let pos = UVec2::new(grid_x, grid_y);
+            let is_buildable = map.is_buildable(pos);
+            let what_color = if is_buildable {
+                Color::srgba(0.0, 1.0, 0.0, 0.3)
+            } else {
+                Color::srgba(1.0, 0.0, 0.0, 0.3)
+            };
+
             commands.spawn((
                 Sprite {
-                    color: Color::srgba(1.0, 1.0, 1.0, 0.3),
+                    color: what_color,
                     custom_size: Some(Vec2::new(map.grid_size.x, map.grid_size.y)),
                     ..default()
                 },
