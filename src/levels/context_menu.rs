@@ -2,7 +2,7 @@ use bevy::color::palettes::basic;
 use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
 
-fn context_menu(
+pub fn context_menu(
     mut commands: Commands,
     query_window: Query<&Window, With<PrimaryWindow>>,
     mouse_button: Res<ButtonInput<MouseButton>>,

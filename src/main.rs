@@ -3,7 +3,8 @@ use bevy::prelude::*;
 use towerdefense::{
     core::{config::{WINDOW_HEIGHT, WINDOW_WIDTH}, game_state::GameStatePlugin},
     entities::{enemy::EnemyPlugin, projectile::ProjectilePlugin, tower::TowerPlugin, pathfinding::PathfindingPlugin},
-    levels::{level::LevelPlugin, level_editor::EditorPlugin, level_textures::TexturesPlugin},
+    levels::{level::LevelPlugin, level_textures::TexturesPlugin},
+    level_editor::EditorPlugin,
     ui::{main_menu::MainMenuPlugin, render::RenderPlugin},
 };
 

@@ -26,3 +26,5 @@ pub mod levels {
     pub mod level_textures;
     pub mod context_menu;
 }
+
+pub mod level_editor;

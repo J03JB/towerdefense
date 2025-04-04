@@ -236,7 +236,7 @@ fn spawn_map_visuals_with_textures(
 
 // Update the setup_level function in level.rs
 fn setup_level(mut commands: Commands, asset_server: Res<AssetServer>) {
-    let level_data_result = std::fs::read_to_string("assets/levels/level_4.json")
+    let level_data_result = std::fs::read_to_string("assets/levels/level02.json")
         .map_err(|e| format!("Error reading level file: {}", e))
         .and_then(|json_str| {
             serde_json::from_str::<LevelData>(&json_str)
