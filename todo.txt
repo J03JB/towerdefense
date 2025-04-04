@@ -24,3 +24,24 @@
 [ ] place path textures from json
 [ ] placeables textures from json
 [ ] start and end textures from json
+
+// mode: bevy::window::WindowMode::Windowed,
+
+
+fn resize_window(
+    mut commands: Commands,
+    mut projection: Query<Entity, With<OrthographicProjection>>,
+    mut resize_event: EventReader<WindowResized>
+) {
+    match resize_event.iter().next() {
+        Some(w) => {        
+            let mut projection = projection.single_mut();
+            commands.entity(projection).despawn();
+            let mut camera = OrthographicCameraBundle::new_2d();
+            camera.orthographic_projection.scale = max(WINDOW_HEIGHT / w.height, WINDOW_WIDTH / w.width);
+            commands.spawn_bundle(camera);
+        },
+        None => ()
+    };
+}
+
