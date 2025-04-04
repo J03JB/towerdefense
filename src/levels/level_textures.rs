@@ -104,93 +104,98 @@ pub fn setup_texture_selector(
         .with_children(|parent| {
             // Panel Title
             parent.spawn(
-                ( // Using TextBundle here is generally fine even if avoiding others
+                (
+                    // Using TextBundle here is generally fine even if avoiding others
                     Text::new("Path Textures"),
                     TextFont {
                         font_size: 20.0,
                         ..default()
                     },
                     TextColor::WHITE,
-                ) // Closing parenthesis for spawn
+                ), // Closing parenthesis for spawn
             ); // Semicolon for the spawn statement
 
             // Scrollable area for buttons (optional but good for many textures)
             // This block is now correctly nested inside the first with_children
-            parent.spawn((
-                Node {
-                    flex_direction: FlexDirection::Column,
-                    align_self: AlignSelf::Stretch,
-                    height: Val::Px(300.0), // Set a fixed height for scrolling
-                    overflow: Overflow::clip_y(), // Enable vertical clipping/scrolling
-                    row_gap: Val::Px(5.0),
-                    ..default()
-                },
-                BackgroundColor(Color::srgba(0.1, 0.1, 0.1, 0.5)),
-            ))
-            .with_children(|parent| {
-                // Spawn buttons for each available texture
-                for texture_path in &textures.paths {
-                    // Extract a display name (e.g., file name without extension)
-                    let texture_name = texture_path
-                        .split('/')
-                        .last() // Get filename part
-                        .unwrap_or(texture_path)
-                        .split('.')
-                        .next() // Get part before extension
-                        .unwrap_or(texture_path)
-                        .replace('_', " ") // Nicer formatting
-                        .to_string();
+            parent
+                .spawn((
+                    Node {
+                        flex_direction: FlexDirection::Column,
+                        align_self: AlignSelf::Stretch,
+                        height: Val::Px(300.0), // Set a fixed height for scrolling
+                        overflow: Overflow::clip_y(), // Enable vertical clipping/scrolling
+                        row_gap: Val::Px(5.0),
+                        ..default()
+                    },
+                    BackgroundColor(Color::srgba(0.1, 0.1, 0.1, 0.5)),
+                ))
+                .with_children(|parent| {
+                    // Spawn buttons for each available texture
+                    for texture_path in &textures.paths {
+                        // Extract a display name (e.g., file name without extension)
+                        let texture_name = texture_path
+                            .split('/')
+                            .last() // Get filename part
+                            .unwrap_or(texture_path)
+                            .split('.')
+                            .next() // Get part before extension
+                            .unwrap_or(texture_path)
+                            .replace('_', " ") // Nicer formatting
+                            .to_string();
 
-                    // Determine initial background color based on current selection
-                    let bg_color = if textures.selected.as_deref() == Some(texture_path) {
-                        Color::srgb(0.3, 0.5, 0.3) // Highlight selected
-                    } else {
-                        Color::srgb(0.15, 0.15, 0.15) // Default
-                    };
+                        // Determine initial background color based on current selection
+                        let bg_color = if textures.selected.as_deref() == Some(texture_path) {
+                            Color::srgb(0.3, 0.5, 0.3) // Highlight selected
+                        } else {
+                            Color::srgb(0.15, 0.15, 0.15) // Default
+                        };
 
-                    parent
-                        .spawn((
-                            Button,
-                            Node {
-                                width: Val::Percent(100.0),
-                                height: Val::Px(40.0),
-                                justify_content: JustifyContent::SpaceBetween, // Space out text and image
-                                align_items: AlignItems::Center,
-                                padding: UiRect::horizontal(Val::Px(10.0)),
-                                ..default()
-                            },
-                            BackgroundColor(bg_color),
-                            TextureButton(texture_path.clone()), // Store path in button
-                        ))
-                        .with_children(|parent| {
-                            // Display texture name
-                            parent.spawn(
-                                ( // TextBundle is still generally okay
-                                    Text::new(texture_name),
-                                    TextFont {
-                                        font_size: 14.0, // Smaller font
+                        parent
+                            .spawn((
+                                Button,
+                                Node {
+                                    width: Val::Percent(100.0),
+                                    height: Val::Px(40.0),
+                                    justify_content: JustifyContent::SpaceBetween, // Space out text and image
+                                    align_items: AlignItems::Center,
+                                    padding: UiRect::horizontal(Val::Px(10.0)),
+                                    ..default()
+                                },
+                                BackgroundColor(bg_color),
+                                TextureButton(texture_path.clone()), // Store path in button
+                            ))
+                            .with_children(|parent| {
+                                // Display texture name
+                                parent.spawn(
+                                    (
+                                        // TextBundle is still generally okay
+                                        Text::new(texture_name),
+                                        TextFont {
+                                            font_size: 14.0, // Smaller font
+                                            ..default()
+                                        },
+                                        TextColor::WHITE,
+                                    ), // Closing parenthesis for spawn
+                                ); // Semicolon for spawn
+
+                                // Display texture preview image
+                                // Keeping original structure for ImageNode + Node
+                                parent.spawn((
+                                    ImageNode {
+                                        // Use ImageNode as originally intended
+                                        image: asset_server.load(texture_path).into(),
                                         ..default()
                                     },
-                                        TextColor::WHITE,
-                                ) // Closing parenthesis for spawn
-                            ); // Semicolon for spawn
-
-                            // Display texture preview image
-                            // Keeping original structure for ImageNode + Node
-                            parent.spawn((
-                                ImageNode { // Use ImageNode as originally intended
-                                    image: asset_server.load(texture_path).into(),
-                                    ..default()
-                                },
-                                Node { // Separate Node for sizing/layout
-                                    width: Val::Px(32.0), // Match image size
-                                    height: Val::Px(32.0),
-                                    ..default()
-                                },
-                            )); // Closing parenthesis and semicolon for spawn
-                        }); // End button children
-                } // End for loop
-            }); // End scrollable area children
+                                    Node {
+                                        // Separate Node for sizing/layout
+                                        width: Val::Px(32.0), // Match image size
+                                        height: Val::Px(32.0),
+                                        ..default()
+                                    },
+                                )); // Closing parenthesis and semicolon for spawn
+                            }); // End button children
+                    } // End for loop
+                }); // End scrollable area children
         }); // End main panel children
 } // End function setup_texture_selector
 
