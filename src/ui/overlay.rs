@@ -10,7 +10,7 @@ impl Plugin for OverlayPlugin {
         app.init_resource::<MyWorldCoords>()
             // app.add_systems(Startup, setup)
             .add_systems(Update, health_bar);
-            // .add_systems(Update, my_cursor_system);
+        // .add_systems(Update, my_cursor_system);
     }
 }
 
@@ -56,7 +56,7 @@ fn health_bar(
                 }),
                 ..default()
             },
-    // TODO: change translation to overlay::something
+            // TODO: change translation to overlay::something
             Transform::from_translation(Vec3::new(-465.0, 310.0, 10.0)),
             HealthBar,
         ));
