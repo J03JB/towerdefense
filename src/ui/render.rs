@@ -1,20 +1,38 @@
+use crate::core::config::{WINDOW_HEIGHT, WINDOW_WIDTH};
 use crate::core::map::Map;
 use crate::ui::overlay::MainCamera;
 
 use bevy::prelude::*;
-use bevy::window::PrimaryWindow;
+use bevy::render::camera::ScalingMode;
+use bevy::window::{PrimaryWindow, WindowResized};
 
 pub struct RenderPlugin;
 
 impl Plugin for RenderPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, setup_camera)
-            .add_systems(Update, (highlight_tile_under_cursor, update_sprites));
+        app.add_systems(Startup, setup_camera).add_systems(
+            Update,
+            (highlight_tile_under_cursor, resize_window, update_sprites),
+        );
     }
 }
 
 fn setup_camera(mut commands: Commands) {
     commands.spawn((Camera2d, MainCamera));
+}
+
+fn resize_window(
+    mut camera_query: Query<&mut OrthographicProjection, With<Camera>>,
+    mut resize_event: EventReader<WindowResized>,
+) {
+    if let Some(w) = resize_event.read().next() {
+        if let Ok(mut projection) = camera_query.get_single_mut() {
+            projection.scaling_mode = ScalingMode::AutoMin {
+                min_width: WINDOW_WIDTH,
+                min_height: WINDOW_HEIGHT,
+            };
+        }
+    }
 }
 
 fn update_sprites() {}
