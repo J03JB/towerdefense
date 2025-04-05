@@ -1,15 +1,41 @@
+use bevy::math::U8Vec2;
 use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
+
+use crate::core::game_state::PlayerResource;
 
 pub struct OverlayPlugin;
 
 impl Plugin for OverlayPlugin {
     fn build(&self, app: &mut App) {
-        app.init_resource::<MyWorldCoords>();
-        // app.add_systems(Startup, setup)
-            app.add_systems(Update, my_cursor_system);
-
+        app.init_resource::<MyWorldCoords>()
+            // app.add_systems(Startup, setup)
+            .add_systems(Update, health_bar);
     }
+}
+
+fn health_bar(
+    mut commands: Commands,
+    player_resources: Option<Res<PlayerResource>>,
+    mycoords: Res<MyWorldCoords>,
+    asset_server: Res<AssetServer>,
+    mut texture_layout: ResMut<Assets<TextureAtlasLayout>>,
+) {
+    let health_bar_texture = asset_server.load("originals/health_bar.png");
+    let layout = TextureAtlasLayout::from_grid(UVec2::new(162, 24),  3, 4,None, None );
+    let texture_layout = texture_layout.add(layout);
+
+       commands.spawn((
+        Sprite {
+            image: health_bar_texture.clone(),
+            texture_atlas: Some(TextureAtlas {
+                layout: texture_layout.clone(),
+                index: 1
+            }),
+            ..default()
+        },
+        Transform::from_translation(Vec3::new(-465.0, 310.0, 10.0)),
+    ));
 }
 
 
@@ -21,15 +47,14 @@ pub struct MyWorldCoords(Vec2);
 #[derive(Component)]
 pub struct MainCamera;
 
-
 // pub fn setup(mut commands: Commands) {
-    // Make sure to add the marker component when you set up your camera
-    // commands.spawn(Camera2d {
-    //     MainCameram
-    //     ..default()
-    //
-    // });
-     // commands.spawn((Camera2d, OverLayCamera));
+// Make sure to add the marker component when you set up your camera
+// commands.spawn(Camera2d {
+//     MainCameram
+//     ..default()
+//
+// });
+// commands.spawn((Camera2d, OverLayCamera));
 // }
 
 pub fn my_cursor_system(
@@ -46,28 +71,28 @@ pub fn my_cursor_system(
     // There is only one primary window, so we can similarly get it from the query:
     let window = q_window.single();
 
-if let Some(cursor_position) = window.cursor_position() {
-    // Convert cursor position to viewport position
-    let viewport_position = cursor_position;
-    
-    // Use the new viewport_to_world_2d which returns a Result instead of Option
-    match camera.viewport_to_world_2d(camera_transform, viewport_position) {
-        Ok(world_position) => {
-            mycoords.0 = world_position;
-            eprintln!("World coords: {}/{}", world_position.x, world_position.y);
-        },
-        Err(_) => {
-            // Handle error - cursor outside viewport or other conversion error
+    if let Some(cursor_position) = window.cursor_position() {
+        // Convert cursor position to viewport position
+        let viewport_position = cursor_position;
+
+        // Use the new viewport_to_world_2d which returns a Result instead of Option
+        match camera.viewport_to_world_2d(camera_transform, viewport_position) {
+            Ok(world_position) => {
+                mycoords.0 = world_position;
+                eprintln!("World coords: {}/{}", world_position.x, world_position.y);
+            }
+            Err(_) => {
+                // Handle error - cursor outside viewport or other conversion error
+            }
         }
     }
-}
     // check if the cursor is inside the window and get its position
     // then, ask bevy to convert into world coordinates, and truncate to discard Z
-//     if let Some(cursor_position) = window.cursor_position() {
-//         if let Some(world_position) = camera.viewport_to_world_2d(camera_transform, viewport_position) {
-//
-//         mycoords.0 = world_position;
-//         eprintln!("World coords: {}/{}", world_position.x, world_position.y);
-//     }
-// }
+    //     if let Some(cursor_position) = window.cursor_position() {
+    //         if let Some(world_position) = camera.viewport_to_world_2d(camera_transform, viewport_position) {
+    //
+    //         mycoords.0 = world_position;
+    //         eprintln!("World coords: {}/{}", world_position.x, world_position.y);
+    //     }
+    // }
 }

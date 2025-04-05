@@ -5,7 +5,7 @@ use towerdefense::{
     entities::{enemy::EnemyPlugin, projectile::ProjectilePlugin, tower::TowerPlugin, pathfinding::PathfindingPlugin},
     levels::{level::LevelPlugin, level_textures::TexturesPlugin},
     level_editor::EditorPlugin,
-    ui::{main_menu::MainMenuPlugin, render::RenderPlugin},
+    ui::{main_menu::MainMenuPlugin, render::RenderPlugin, overlay::OverlayPlugin},
 };
 
 fn main() {
@@ -32,6 +32,6 @@ fn main() {
         .add_plugins(TexturesPlugin)
         // .add_plugins(grid::GridPlugin)
         // .add_plugins(ui::UiPlugin)
-        // .add_plugins(overlay::OverlayPlugin)
+        .add_plugins(OverlayPlugin)
         .run();
 }
