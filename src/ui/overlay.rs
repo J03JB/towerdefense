@@ -1,4 +1,3 @@
-use bevy::math::U8Vec2;
 use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
 
@@ -11,33 +10,58 @@ impl Plugin for OverlayPlugin {
         app.init_resource::<MyWorldCoords>()
             // app.add_systems(Startup, setup)
             .add_systems(Update, health_bar);
+            // .add_systems(Update, my_cursor_system);
     }
 }
+
+#[derive(Component)]
+struct HealthBar;
 
 fn health_bar(
     mut commands: Commands,
     player_resources: Option<Res<PlayerResource>>,
-    mycoords: Res<MyWorldCoords>,
     asset_server: Res<AssetServer>,
     mut texture_layout: ResMut<Assets<TextureAtlasLayout>>,
+    mut query: Query<&mut Sprite, With<HealthBar>>,
 ) {
     let health_bar_texture = asset_server.load("originals/health_bar.png");
-    let layout = TextureAtlasLayout::from_grid(UVec2::new(162, 24),  3, 4,None, None );
+    let layout = TextureAtlasLayout::from_grid(UVec2::new(162, 24), 3, 4, None, None);
     let texture_layout = texture_layout.add(layout);
 
-       commands.spawn((
-        Sprite {
-            image: health_bar_texture.clone(),
-            texture_atlas: Some(TextureAtlas {
-                layout: texture_layout.clone(),
-                index: 1
-            }),
-            ..default()
-        },
-        Transform::from_translation(Vec3::new(-465.0, 310.0, 10.0)),
-    ));
-}
+    let player_health = player_resources.map(|pr| pr.health).unwrap_or(0);
+    // info!("player health: {}", player_health);
+    let player_max_health = 100;
 
+    let health_index = if player_max_health > 0 {
+        ((1.0 - (player_health as f32 / player_max_health as f32)) * 10.0).round() as usize
+    } else {
+        10
+    };
+    // info!("health index: {}", health_index);
+
+    let health_index = health_index.min(10);
+
+    if let Ok(mut sprite) = query.get_single_mut() {
+        sprite.texture_atlas = Some(TextureAtlas {
+            layout: texture_layout.clone(),
+            index: health_index,
+        });
+    } else {
+        commands.spawn((
+            Sprite {
+                image: health_bar_texture.clone(),
+                texture_atlas: Some(TextureAtlas {
+                    layout: texture_layout.clone(),
+                    index: health_index,
+                }),
+                ..default()
+            },
+    // TODO: change translation to overlay::something
+            Transform::from_translation(Vec3::new(-465.0, 310.0, 10.0)),
+            HealthBar,
+        ));
+    }
+}
 
 /// We will store the world position of the mouse cursor here.
 #[derive(Resource, Default)]
