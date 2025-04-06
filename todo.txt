@@ -4,11 +4,12 @@
 [ ] setting menu
 [ ] level select screen
 [ ] shop
+[x] health bar
 
 [ Editor ]
-[ ] start and end point need fixing
+[x] start and end point need fixing
 [ ] input box needs to clear text
-[ ] no passthrough on menu bar
+[x] no passthrough on menu bar
 [ ] set up textures to place (path)
 [ ] add texure tiles/place
 [ ] new level
@@ -17,13 +18,19 @@
 [ ] placeables... 
 [ ] context menu
     [ ] fix position if off screen
-    [ ] fix click
+    [x] fix click
 [ ] place path tiles correctly
 
 [ Map ]
-[ ] place path textures from json
+[x] place path textures from json
 [ ] placeables textures from json
 [ ] start and end textures from json
+
+[ Enemies ]
+[ ] waves need to be per level
+[ ] soawn enemies need fixing
+
+
 
 // mode: bevy::window::WindowMode::Windowed,
 
@@ -44,4 +51,3 @@ fn resize_window(
         None => ()
     };
 }
-

@@ -1,5 +1,6 @@
 use crate::core::config::{CELL_SIZE, GRID_HEIGHT, GRID_WIDTH};
 use crate::core::map::Map;
+use crate::core::game_state::GameState;
 use crate::entities::enemy::{EnemyType, spawn_enemy};
 use crate::entities::pathfinding::{FlowDirection, FlowField};
 use crate::levels::level_textures::PathTexture;
@@ -10,8 +11,8 @@ pub struct LevelPlugin;
 
 impl Plugin for LevelPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, setup_level)
-            .add_systems(Update, spawn_wave_system)
+        app.add_systems(Startup, setup_level.run_if(not(in_state(GameState::Editor))))
+            .add_systems(Update, spawn_wave_system.run_if(in_state(GameState::Playing)))
             // .add_systems(Update, check_wave_progress)
             .add_event::<WaveCompleteEvent>();
     }
