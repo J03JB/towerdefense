@@ -12,6 +12,7 @@ pub struct LevelPlugin;
 impl Plugin for LevelPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Startup, setup_level.run_if(not(in_state(GameState::Editor))))
+            // app.add_systems(Startup, setup_level)
             .add_systems(Update, spawn_wave_system.run_if(in_state(GameState::Playing)))
             // .add_systems(Update, check_wave_progress)
             .add_event::<WaveCompleteEvent>();
@@ -237,7 +238,7 @@ fn spawn_map_visuals_with_textures(
 
 // Update the setup_level function in level.rs
 fn setup_level(mut commands: Commands, asset_server: Res<AssetServer>) {
-    let level_data_result = std::fs::read_to_string("assets/levels/level-test.json")
+    let level_data_result = std::fs::read_to_string("assets/levels/level_03.json")
         .map_err(|e| format!("Error reading level file: {}", e))
         .and_then(|json_str| {
             serde_json::from_str::<LevelData>(&json_str)

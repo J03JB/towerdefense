@@ -187,315 +187,316 @@
         0,
         4
       ],
-      "texture": "textures/path/path_straight_horizontal.png"
+      "texture": "textures/path01.png"
     },
     {
       "position": [
         1,
         4
       ],
-      "texture": "textures/path/path_straight_horizontal.png"
+      "texture": "textures/path01.png"
     },
     {
       "position": [
         2,
         4
       ],
-      "texture": "textures/path/path_straight_horizontal.png"
+      "texture": "textures/path01.png"
+      
     },
     {
       "position": [
         3,
         4
       ],
-      "texture": "textures/path/path_straight_horizontal.png"
+      "texture": "textures/path01.png"
     },
     {
       "position": [
         4,
         4
       ],
-      "texture": "textures/path/path_straight_horizontal.png"
+      "texture": "textures/path01.png"
     },
     {
       "position": [
         5,
         4
       ],
-      "texture": "textures/path/path_straight_horizontal.png"
+      "texture": "textures/path01.png"
     },
     {
       "position": [
         6,
         4
       ],
-      "texture": "textures/path/path_straight_horizontal.png"
+      "texture": "textures/path01.png"
     },
     {
       "position": [
         6,
         5
       ],
-      "texture": "textures/path/path_straight_horizontal.png"
+      "texture": "textures/path01.png"
     },
     {
       "position": [
         6,
         6
       ],
-      "texture": "textures/path/path_straight_horizontal.png"
+      "texture": "textures/path01.png"
     },
     {
       "position": [
         6,
         7
       ],
-      "texture": "textures/path/path_straight_horizontal.png"
+      "texture": "textures/path01.png"
     },
     {
       "position": [
         6,
         8
       ],
-      "texture": "textures/path/path_straight_horizontal.png"
+      "texture": "textures/path01.png"
     },
     {
       "position": [
         6,
         9
       ],
-      "texture": "textures/path/path_straight_horizontal.png"
+      "texture": "textures/path01.png"
     },
     {
       "position": [
         6,
         10
       ],
-      "texture": "textures/path/path_straight_horizontal.png"
+      "texture": "textures/path01.png"
     },
     {
       "position": [
         7,
         10
       ],
-      "texture": "textures/path/path_straight_horizontal.png"
+      "texture": "textures/path01.png"
     },
     {
       "position": [
         8,
         10
       ],
-      "texture": "textures/path/path_straight_horizontal.png"
+      "texture": "textures/path01.png"
     },
     {
       "position": [
         9,
         10
       ],
-      "texture": "textures/path/path_straight_horizontal.png"
+      "texture": "textures/path01.png"
     },
     {
       "position": [
         10,
         10
       ],
-      "texture": "textures/path/path_straight_horizontal.png"
+      "texture": "textures/path01.png"
     },
     {
       "position": [
         11,
         10
       ],
-      "texture": "textures/path/path_straight_horizontal.png"
+      "texture": "textures/path01.png"
     },
     {
       "position": [
         11,
         9
       ],
-      "texture": "textures/path/path_straight_horizontal.png"
+      "texture": "textures/path01.png"
     },
     {
       "position": [
         11,
         8
       ],
-      "texture": "textures/path/path_straight_horizontal.png"
+      "texture": "textures/path01.png"
     },
     {
       "position": [
         11,
         7
       ],
-      "texture": "textures/path/path_straight_horizontal.png"
+      "texture": "textures/path01.png"
     },
     {
       "position": [
         11,
         6
       ],
-      "texture": "textures/path/path_straight_horizontal.png"
+      "texture": "textures/path01.png"
     },
     {
       "position": [
         11,
         5
       ],
-      "texture": "textures/path/path_straight_horizontal.png"
+      "texture": "textures/path01.png"
     },
     {
       "position": [
         11,
         4
       ],
-      "texture": "textures/path/path_straight_horizontal.png"
+      "texture": "textures/path01.png"
     },
     {
       "position": [
         11,
         3
       ],
-      "texture": "textures/path/path_straight_horizontal.png"
+      "texture": "textures/path01.png"
     },
     {
       "position": [
         12,
         3
       ],
-      "texture": "textures/path/path_straight_horizontal.png"
+      "texture": "textures/path01.png"
     },
     {
       "position": [
         13,
         3
       ],
-      "texture": "textures/path/path_straight_horizontal.png"
+      "texture": "textures/path01.png"
     },
     {
       "position": [
         14,
         3
       ],
-      "texture": "textures/path/path_straight_horizontal.png"
+      "texture": "textures/path01.png"
     },
     {
       "position": [
         15,
         3
       ],
-      "texture": "textures/path/path_straight_horizontal.png"
+      "texture": "textures/path01.png"
     },
     {
       "position": [
         15,
         4
       ],
-      "texture": "textures/path/path_straight_horizontal.png"
+      "texture": "textures/path01.png"
     },
     {
       "position": [
         15,
         5
       ],
-      "texture": "textures/path/path_straight_horizontal.png"
+      "texture": "textures/path01.png"
     },
     {
       "position": [
         15,
         6
       ],
-      "texture": "textures/path/path_straight_horizontal.png"
+      "texture": "textures/path01.png"
     },
     {
       "position": [
         15,
         7
       ],
-      "texture": "textures/path/path_straight_horizontal.png"
+      "texture": "textures/path01.png"
     },
     {
       "position": [
         15,
         8
       ],
-      "texture": "textures/path/path_straight_horizontal.png"
+      "texture": "textures/path01.png"
     },
     {
       "position": [
         16,
         8
       ],
-      "texture": "textures/path/path_straight_horizontal.png"
+      "texture": "textures/path01.png"
     },
     {
       "position": [
         17,
         8
       ],
-      "texture": "textures/path/path_straight_horizontal.png"
+      "texture": "textures/path01.png"
     },
     {
       "position": [
         18,
         8
       ],
-      "texture": "textures/path/path_straight_horizontal.png"
+      "texture": "textures/path01.png"
     },
     {
       "position": [
         19,
         8
       ],
-      "texture": "textures/path/path_straight_horizontal.png"
+      "texture": "textures/path01.png"
     },
     {
       "position": [
         20,
         8
       ],
-      "texture": "textures/path/path_straight_horizontal.png"
+      "texture": "textures/path01.png"
     },
     {
       "position": [
         21,
         8
       ],
-      "texture": "textures/path/path_straight_horizontal.png"
+      "texture": "textures/path01.png"
     },
     {
       "position": [
         22,
         8
       ],
-      "texture": "textures/path/path_straight_horizontal.png"
+      "texture": "textures/path01.png"
     },
     {
       "position": [
         23,
         8
       ],
-      "texture": "textures/path/path_straight_horizontal.png"
+      "texture": "textures/path01.png"
     },
     {
       "position": [
         24,
         8
       ],
-      "texture": "textures/path/path_straight_horizontal.png"
+      "texture": "textures/path01.png"
     },
     {
       "position": [
         25,
         8
       ],
-      "texture": "textures/path/path_straight_horizontal.png"
+      "texture": "textures/path01.png"
     },
     {
       "position": [
         26,
         8
       ],
-      "texture": "textures/path/path_straight_horizontal.png"
+      "texture": "textures/path01.png"
     }
   ],
   "start": [

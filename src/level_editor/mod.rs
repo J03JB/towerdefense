@@ -6,22 +6,20 @@ pub mod resources;
 pub mod state;
 pub mod systems;
 
-
 pub use state::EditorState;
 
 use crate::core::game_state::GameState;
 use crate::level_editor::resources::{EditorData, EditorTextInput};
-use crate::levels::level_textures::{cleanup_texture_selector, setup_texture_selector};
 use crate::level_editor::systems::setup_editor_mode;
+use crate::levels::level_textures::{cleanup_texture_selector, setup_texture_selector};
 
 pub struct EditorPlugin;
 
 impl Plugin for EditorPlugin {
     fn build(&self, app: &mut App) {
-        app
-            .init_state::<EditorState>()
+        app.init_state::<EditorState>()
             .init_resource::<EditorTextInput>()
-            .init_resource::<EditorData>() 
+            .init_resource::<EditorData>()
             .add_systems(Startup, check_editor_launch_arg)
             .add_systems(
                 Update,
@@ -33,10 +31,10 @@ impl Plugin for EditorPlugin {
                         systems::handle_context_menu_interaction,
                     )
                         .run_if(|input: Res<EditorTextInput>| !input.dialog_open),
-                    systems::update_tool_display_text, 
-                    systems::export_level_data, 
+                    systems::update_tool_display_text,
+                    systems::export_level_data,
                     systems::handle_save_dialog,
-                    systems::handle_text_input, 
+                    systems::handle_text_input,
                     systems::render_editor_path,
                 )
                     .run_if(in_state(EditorState::Active)),
@@ -48,13 +46,10 @@ impl Plugin for EditorPlugin {
                     crate::levels::level_textures::setup_texture_selector,
                 ),
             )
-                .add_systems(OnEnter(GameState::Editor), setup_editor_mode)
+            .add_systems(OnEnter(GameState::Editor), setup_editor_mode)
             .add_systems(
                 OnExit(EditorState::Active),
-                (
-                    cleanup_editor_ui,
-                    cleanup_texture_selector,
-                ),
+                (cleanup_editor_ui, cleanup_texture_selector),
             );
 
         // TODO: Add systems for OnExit(EditorState::Active) to clean up UI/markers
@@ -69,7 +64,6 @@ fn check_editor_launch_arg(
     if args.iter().any(|arg| arg == "--editor") {
         editor_state.set(EditorState::Active);
         game_state.set(GameState::Editor);
-        // game_state.set(GameState::Playing);
     } else {
         editor_state.set(EditorState::Inactive);
     }

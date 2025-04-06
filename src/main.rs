@@ -21,6 +21,7 @@ fn main() {
         }
         ).set(ImagePlugin::default_nearest()))
         .add_plugins(GameStatePlugin)
+        .add_plugins(EditorPlugin)
         .add_plugins(MainMenuPlugin)
         .add_plugins(RenderPlugin)
         .add_plugins(EnemyPlugin)
@@ -28,7 +29,6 @@ fn main() {
         .add_plugins(LevelPlugin)
         .add_plugins(TowerPlugin)
         .add_plugins(ProjectilePlugin)
-        .add_plugins(EditorPlugin)
         .add_plugins(TexturesPlugin)
         .add_plugins(OverlayPlugin)
         .run();
