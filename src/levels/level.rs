@@ -268,16 +268,13 @@ fn setup_level(mut commands: Commands, asset_server: Res<AssetServer>) {
     // info!("buildable tiles: {:?}", map.buildable_tiles);
     // info!("path tiles: {:?}", map.path_tiles);
 
-    // Initialize flow field
     let map_width = map.dimensions.x as usize;
     let map_height = map.dimensions.y as usize;
     
-    // Clamp end position to valid grid bounds
     let goal_x = map.end.x.min(map_width as u32 - 1);
     let goal_y = map.end.y.min(map_height as u32 - 1);
     let goal_pos = UVec2::new(goal_x, goal_y);
     
-    // Create flow field, compute it, and insert it as a resource
     let mut flow_field = FlowField::new(map_width, map_height);
     flow_field.compute(&map, goal_pos);
     
@@ -285,10 +282,8 @@ fn setup_level(mut commands: Commands, asset_server: Res<AssetServer>) {
     info!("Start position is: {:?}", map.start);
     info!("Map has {} path tiles", map.path_tiles.len());
 
-    // Add the flow field as a resource
     commands.insert_resource(flow_field);
 
-    // Use the level data to spawn map visuals with correct textures
     spawn_map_visuals_with_textures(&mut commands, &asset_server, &map, level_data_result.ok());
 
     commands.insert_resource(map);
@@ -302,12 +297,9 @@ fn spawn_wave_system(
     time: Res<Time>,
     enemies: Query<&crate::entities::enemy::Enemy>,
 ) {
-    // Only spawn an enemy if none exists and flow field is initialized
     if enemies.is_empty() && flow_field.is_some() && flow_field.as_ref().unwrap().is_initialized {
-        // Get start position from the map
         let start_pos = map.grid_to_world(map.start);
         
-        // Spawn a basic enemy
         commands.spawn((
             Sprite {
                 image: asset_server.load("textures/enemies/enemy.png"),
@@ -317,7 +309,7 @@ fn spawn_wave_system(
             Transform::from_translation(Vec3::new(start_pos.x, start_pos.y, 10.0)),
             crate::entities::enemy::Enemy {
                 health: 100.0,
-                speed: 50.0,
+                speed: 200.0,
                 reward: 10,
                 enemy_type: EnemyType::Basic,
                 path_index: 0,

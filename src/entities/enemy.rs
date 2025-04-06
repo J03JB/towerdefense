@@ -53,7 +53,7 @@ pub fn spawn_enemy(
 
     // Determine enemy properties based on type
     let (health, speed, reward) = match enemy_type {
-        EnemyType::Basic => (100.0, 0.01, 10),
+        EnemyType::Basic => (100.0, 100.0, 10),
         EnemyType::Fast => (50.0, 100.0, 15),
         EnemyType::Tank => (200.0, 30.0, 20),
         EnemyType::Boss => (500.0, 40.0, 50),
@@ -99,10 +99,8 @@ fn move_enemies_along_path(
     for (mut transform, enemy) in enemies.iter_mut() {
         let current_pos_world = transform.translation.xy();
 
-        // 1. Find current grid cell
         let current_grid_pos = map.world_to_grid(current_pos_world);
 
-        // --- Safety Check: Ensure grid_pos is within bounds ---
         if current_grid_pos.x >= flow_field.width as u32 || current_grid_pos.y >= flow_field.height as u32 {
              warn!(
                 "Enemy at {:?} (world {:?}) is outside flow field bounds ({}, {}). Stopping.",
@@ -110,17 +108,12 @@ fn move_enemies_along_path(
             );
              continue;
         }
-        // --- End Safety Check ---
 
-        // 2. Get flow direction *from the current cell*
-        // We use get_direction here, not get_flow_vector, to determine the *next cell*
         let flow_direction_enum = flow_field.get_direction(current_grid_pos.x as usize, current_grid_pos.y as usize);
 
-        // If no direction (e.g., at goal or stuck), don't move
         let Some(direction) = flow_direction_enum else { continue; };
         if direction == FlowDirection::None { continue; };
 
-        // 3. Determine the *next* grid cell based on the direction
         let next_grid_pos = match direction {
             FlowDirection::North => UVec2::new(current_grid_pos.x, current_grid_pos.y.saturating_sub(1)), // Grid Y decreases upwards
             FlowDirection::South => UVec2::new(current_grid_pos.x, (current_grid_pos.y + 1).min(flow_field.height as u32 - 1)), // Grid Y increases downwards
@@ -129,30 +122,22 @@ fn move_enemies_along_path(
             FlowDirection::None => current_grid_pos, // Should not happen due to check above
         };
 
-        // 4. Calculate the world position of the *center* of the next grid cell
         let target_pos_world = map.grid_to_world(next_grid_pos);
 
-        // 5. Calculate the vector pointing from current position to the target center
         let direction_to_target = target_pos_world - current_pos_world;
 
-        // 6. Calculate the distance we *can* move this frame
         let max_distance_this_frame = enemy.speed * delta;
 
-        // 7. Calculate the actual movement vector
         let movement;
         if direction_to_target.length_squared() < max_distance_this_frame * max_distance_this_frame {
-            // If we can reach the target center this frame, move exactly there
             movement = direction_to_target;
         } else {
-            // Otherwise, move towards the target by the max distance
             movement = direction_to_target.normalize_or_zero() * max_distance_this_frame;
         }
 
-        // 8. Apply the movement
         transform.translation.x += movement.x;
         transform.translation.y += movement.y;
 
-        // 9. Rotation (Optional - Face the actual movement direction)
         if movement != Vec2::ZERO {
             let angle = movement.y.atan2(movement.x);
             transform.rotation = Quat::from_rotation_z(angle);
