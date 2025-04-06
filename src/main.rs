@@ -30,8 +30,7 @@ fn main() {
         .add_plugins(ProjectilePlugin)
         .add_plugins(EditorPlugin)
         .add_plugins(TexturesPlugin)
-        // .add_plugins(grid::GridPlugin)
-        // .add_plugins(ui::UiPlugin)
         .add_plugins(OverlayPlugin)
         .run();
 }
+

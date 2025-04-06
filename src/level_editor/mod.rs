@@ -6,11 +6,13 @@ pub mod resources;
 pub mod state;
 pub mod systems;
 
+
 pub use state::EditorState;
 
 use crate::core::game_state::GameState;
 use crate::level_editor::resources::{EditorData, EditorTextInput};
 use crate::levels::level_textures::{cleanup_texture_selector, setup_texture_selector};
+use crate::level_editor::systems::setup_editor_mode;
 
 pub struct EditorPlugin;
 
@@ -46,6 +48,7 @@ impl Plugin for EditorPlugin {
                     crate::levels::level_textures::setup_texture_selector,
                 ),
             )
+                .add_systems(OnEnter(GameState::Editor), setup_editor_mode)
             .add_systems(
                 OnExit(EditorState::Active),
                 (
@@ -65,13 +68,13 @@ fn check_editor_launch_arg(
     let args: Vec<String> = std::env::args().collect();
     if args.iter().any(|arg| arg == "--editor") {
         editor_state.set(EditorState::Active);
-        // TODO: add GameState::Editor
-        game_state.set(GameState::Playing);
+        game_state.set(GameState::Editor);
+        // game_state.set(GameState::Playing);
     } else {
         editor_state.set(EditorState::Inactive);
     }
 }
-
+#[allow(clippy::complexity)]
 fn cleanup_editor_ui(
     mut commands: Commands,
     ui_query: Query<

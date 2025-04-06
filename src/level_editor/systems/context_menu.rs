@@ -44,6 +44,12 @@ pub fn spawn_context_menu(
 ) {
     let window = windows.single();
 
+    if let Some(cursor_translate) = window.cursor_position() {
+        let relative_position = (
+            (cursor_translate.y / window.height()).abs(),
+            (cursor_translate.x / window.width()).abs(),
+        );
+
     if mouse_input.just_pressed(MouseButton::Left) {
         for entity in context_menu_query.iter() {
             commands.entity(entity).despawn_recursive();
@@ -54,19 +60,36 @@ pub fn spawn_context_menu(
         for entity in context_menu_query.iter() {
             commands.entity(entity).despawn_recursive();
         }
+            let mut style = Node {
+                position_type: PositionType::Absolute,
+                top: Val::Percent(relative_position.0.abs() * 100.),
+                left: Val::Percent(relative_position.1.abs() * 100.),
 
-        if let Some(cursor_position) = window.cursor_position() {
+                width: Val::Percent(15.0),
+                height: Val::Percent(15.0),
+                ..default()
+            };
+
+            if relative_position.1.abs() > 0.9 {
+                style.left = Val::Auto;
+                style.right = Val::Percent(100. - relative_position.1.abs() * 100.);
+            }
+            if relative_position.0.abs() > 0.9 {
+                style.top = Val::Auto;
+                style.bottom = Val::Percent(100. - relative_position.0.abs() * 100.);
+            }
+
             commands
                 .spawn((
                     Node {
                         position_type: PositionType::Absolute,
-                        left: Val::Px(cursor_position.x),
-                        top: Val::Px(cursor_position.y),
-                        width: Val::Px(150.0),
-                        height: Val::Auto,
+                        left: Val::Percent(relative_position.1.abs() * 100.),
+                        top: Val::Percent(relative_position.0.abs() * 100.),
+                        width: Val::Percent(15.0),
+                        height: Val::Percent(15.0),
                         padding: UiRect::all(Val::Px(5.0)),
                         border: UiRect::all(Val::Px(1.0)),
-                        flex_direction: FlexDirection::Column,
+                        // flex_direction: FlexDirection::Column,
                         ..default()
                     },
                     BackgroundColor(Color::srgb(0.25, 0.25, 0.25)),
